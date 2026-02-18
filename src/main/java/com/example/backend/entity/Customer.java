@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
+
 @Entity
 @Table(name = "customers")
 public class Customer {
@@ -81,4 +82,7 @@ public class Customer {
     public LocalDateTime getModifiedTime() {
         return modifiedTime;
     }
+    
+
+
 }
