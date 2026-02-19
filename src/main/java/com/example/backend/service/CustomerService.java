@@ -16,7 +16,6 @@ public interface CustomerService {
 
     void deleteCustomer(Long id);
 
-    CustomerDTO mapToDTO(Customer customer);
-    Customer mapToEntity(CustomerDTO customerDTO);
+    
     
 }

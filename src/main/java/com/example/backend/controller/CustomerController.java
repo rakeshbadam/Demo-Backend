@@ -17,7 +17,7 @@ public class CustomerController {
     @Autowired
     private CustomerService customerService;
 
-    // 🔹 POST - Create Customer
+    //  POST - Create Customer
     @PostMapping
     public ResponseEntity<CustomerDTO> createCustomer(
             @Valid @RequestBody CustomerDTO customerDTO) {
@@ -26,21 +26,21 @@ public class CustomerController {
         return new ResponseEntity<>(createdCustomer, HttpStatus.CREATED);
     }
 
-    // 🔹 GET - Get All Customers
+    //  GET - Get All Customers
     @GetMapping
     public ResponseEntity<List<CustomerDTO>> getAllCustomers() {
 
         return ResponseEntity.ok(customerService.getAllCustomers());
     }
 
-    // 🔹 GET - Get Customer By ID
+    //  GET - Get Customer By ID
     @GetMapping("/{id}")
     public ResponseEntity<CustomerDTO> getCustomerById(@PathVariable Long id) {
 
         return ResponseEntity.ok(customerService.getCustomerById(id));
     }
 
-    // 🔹 PUT - Update Customer
+    //  PUT - Update Customer
     @PutMapping("/{id}")
     public ResponseEntity<CustomerDTO> updateCustomer(
             @PathVariable Long id,
@@ -49,7 +49,7 @@ public class CustomerController {
         return ResponseEntity.ok(customerService.updateCustomer(id, customerDTO));
     }
 
-    // 🔹 DELETE - Delete Customer
+    //  DELETE - Delete Customer
     @DeleteMapping("/{id}")
     public ResponseEntity<String> deleteCustomer(@PathVariable Long id) {
 
