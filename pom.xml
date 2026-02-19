@@ -106,6 +106,16 @@
 			<scope>test</scope>
 		</dependency>
 	</dependencies>
+	<dependency>
+    <groupId>software.amazon.awssdk</groupId>
+    <artifactId>lambda</artifactId>
+</dependency>
+
+<dependency>
+    <groupId>software.amazon.awssdk</groupId>
+    <artifactId>auth</artifactId>
+</dependency>
+
 
 	<build>
 		<plugins>

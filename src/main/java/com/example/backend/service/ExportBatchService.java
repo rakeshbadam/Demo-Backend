@@ -23,4 +23,6 @@ public interface ExportBatchService {
     ExportBatchDTO updateBatchStatus(Long batchId, UpdateExportBatchStatusDTO dto);
 
     void deleteBatch(Long batchId);
+    
+    List<Map<String, Object>> getAllCustomerAnalytics();
 }
