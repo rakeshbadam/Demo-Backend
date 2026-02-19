@@ -1,29 +1,26 @@
 package com.example.backend.service;
 
+import com.example.backend.dto.CreateExportBatchDTO;
 import com.example.backend.dto.ExportBatchDTO;
+import com.example.backend.dto.UpdateExportBatchStatusDTO;
 
 import java.util.List;
 
 public interface ExportBatchService {
 
-    ExportBatchDTO createExportBatch(ExportBatchDTO dto);
+    ExportBatchDTO createExportBatch(CreateExportBatchDTO dto);
 
-    // helper: create default last-3-month batch
     ExportBatchDTO createLast3MonthsBatch(Long customerId);
 
-    List<ExportBatchDTO> getAllExportBatches();
+    List<ExportBatchDTO> getAllBatches();
 
-    ExportBatchDTO getExportBatchById(Long id);
+    ExportBatchDTO getBatchById(Long batchId);
 
-    List<ExportBatchDTO> getExportBatchesByCustomerId(Long customerId);
+    List<ExportBatchDTO> getBatchesByCustomerId(Long customerId);
 
     List<ExportBatchDTO> getPendingBatches();
 
-    ExportBatchDTO markInProgress(Long batchId);
+    ExportBatchDTO updateBatchStatus(Long batchId, UpdateExportBatchStatusDTO dto);
 
-    ExportBatchDTO markSuccess(Long batchId, String exportFileKey, Integer rowCount);
-
-    ExportBatchDTO markFailed(Long batchId, String errorMessage);
-
-    void deleteExportBatch(Long id);
+    void deleteBatch(Long batchId);
 }

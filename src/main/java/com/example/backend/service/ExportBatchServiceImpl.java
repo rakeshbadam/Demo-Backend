@@ -1,6 +1,8 @@
 package com.example.backend.service;
 
+import com.example.backend.dto.CreateExportBatchDTO;
 import com.example.backend.dto.ExportBatchDTO;
+import com.example.backend.dto.UpdateExportBatchStatusDTO;
 import com.example.backend.entity.Customer;
 import com.example.backend.entity.ExportBatch;
 import com.example.backend.exception.ResourceNotFoundException;
@@ -22,28 +24,30 @@ public class ExportBatchServiceImpl implements ExportBatchService {
     @Autowired
     private CustomerRepository customerRepository;
 
+    // ==========================
+    // CREATE (custom window)
+    // ==========================
     @Override
-    public ExportBatchDTO createExportBatch(ExportBatchDTO dto) {
+    public ExportBatchDTO createExportBatch(CreateExportBatchDTO dto) {
 
         Customer customer = customerRepository.findById(dto.getCustomerId())
                 .orElseThrow(() ->
                         new ResourceNotFoundException("Customer not found with id: " + dto.getCustomerId())
                 );
 
-        ExportBatch batch = mapToEntity(dto);
+        ExportBatch batch = new ExportBatch();
         batch.setCustomer(customer);
-
-        if (batch.getStatus() == null || batch.getStatus().isBlank()) {
-            batch.setStatus("PENDING");
-        }
-        if (batch.getAttemptCount() == null) {
-            batch.setAttemptCount(0);
-        }
+        batch.setStartDate(dto.getStartDate());
+        batch.setEndDate(dto.getEndDate());
+        batch.setStatus("PENDING");
 
         ExportBatch saved = exportBatchRepository.save(batch);
         return mapToDTO(saved);
     }
 
+    // ==========================
+    // CREATE (last 3 months)
+    // ==========================
     @Override
     public ExportBatchDTO createLast3MonthsBatch(Long customerId) {
 
@@ -57,34 +61,44 @@ public class ExportBatchServiceImpl implements ExportBatchService {
 
         ExportBatch batch = new ExportBatch();
         batch.setCustomer(customer);
-        batch.setWindowStart(start);
-        batch.setWindowEnd(end);
+        batch.setStartDate(start);
+        batch.setEndDate(end);
         batch.setStatus("PENDING");
-        batch.setAttemptCount(0);
 
         ExportBatch saved = exportBatchRepository.save(batch);
         return mapToDTO(saved);
     }
 
+    // ==========================
+    // GET ALL
+    // ==========================
     @Override
-    public List<ExportBatchDTO> getAllExportBatches() {
+    public List<ExportBatchDTO> getAllBatches() {
         return exportBatchRepository.findAll()
                 .stream()
                 .map(this::mapToDTO)
                 .collect(Collectors.toList());
     }
 
+    // ==========================
+    // GET BY ID
+    // ==========================
     @Override
-    public ExportBatchDTO getExportBatchById(Long id) {
-        ExportBatch batch = exportBatchRepository.findById(id)
+    public ExportBatchDTO getBatchById(Long batchId) {
+
+        ExportBatch batch = exportBatchRepository.findById(batchId)
                 .orElseThrow(() ->
-                        new ResourceNotFoundException("Export batch not found with id: " + id)
+                        new ResourceNotFoundException("Export batch not found with id: " + batchId)
                 );
+
         return mapToDTO(batch);
     }
 
+    // ==========================
+    // GET BY CUSTOMER ID
+    // ==========================
     @Override
-    public List<ExportBatchDTO> getExportBatchesByCustomerId(Long customerId) {
+    public List<ExportBatchDTO> getBatchesByCustomerId(Long customerId) {
 
         customerRepository.findById(customerId)
                 .orElseThrow(() ->
@@ -97,105 +111,66 @@ public class ExportBatchServiceImpl implements ExportBatchService {
                 .collect(Collectors.toList());
     }
 
+    // ==========================
+    // GET PENDING (Lambda uses)
+    // ==========================
     @Override
     public List<ExportBatchDTO> getPendingBatches() {
-        return exportBatchRepository.findByStatusOrderByCreatedTimeAsc("PENDING")
+
+        return exportBatchRepository.findByStatus("PENDING")
                 .stream()
                 .map(this::mapToDTO)
                 .collect(Collectors.toList());
     }
 
+    // ==========================
+    // UPDATE STATUS (Lambda uses)
+    // ==========================
     @Override
-    public ExportBatchDTO markInProgress(Long batchId) {
+    public ExportBatchDTO updateBatchStatus(Long batchId, UpdateExportBatchStatusDTO dto) {
 
         ExportBatch batch = exportBatchRepository.findById(batchId)
                 .orElseThrow(() ->
                         new ResourceNotFoundException("Export batch not found with id: " + batchId)
                 );
 
-        batch.setStatus("IN_PROGRESS");
-        batch.setAttemptCount((batch.getAttemptCount() == null ? 0 : batch.getAttemptCount()) + 1);
-        batch.setLastAttemptTime(LocalDateTime.now());
-        batch.setErrorMessage(null);
+        batch.setStatus(dto.getStatus());
+        batch.setFilePath(dto.getFilePath());
+        batch.setErrorMessage(dto.getErrorMessage());
 
-        ExportBatch saved = exportBatchRepository.save(batch);
-        return mapToDTO(saved);
+        ExportBatch updated = exportBatchRepository.save(batch);
+        return mapToDTO(updated);
     }
 
+    // ==========================
+    // DELETE
+    // ==========================
     @Override
-    public ExportBatchDTO markSuccess(Long batchId, String exportFileKey, Integer rowCount) {
+    public void deleteBatch(Long batchId) {
 
-        ExportBatch batch = exportBatchRepository.findById(batchId)
-                .orElseThrow(() ->
-                        new ResourceNotFoundException("Export batch not found with id: " + batchId)
-                );
-
-        batch.setStatus("SUCCESS");
-        batch.setExportFileKey(exportFileKey);
-        batch.setRowCount(rowCount);
-        batch.setErrorMessage(null);
-
-        ExportBatch saved = exportBatchRepository.save(batch);
-        return mapToDTO(saved);
-    }
-
-    @Override
-    public ExportBatchDTO markFailed(Long batchId, String errorMessage) {
-
-        ExportBatch batch = exportBatchRepository.findById(batchId)
-                .orElseThrow(() ->
-                        new ResourceNotFoundException("Export batch not found with id: " + batchId)
-                );
-
-        batch.setStatus("FAILED");
-        batch.setErrorMessage(errorMessage);
-        batch.setLastAttemptTime(LocalDateTime.now());
-
-        ExportBatch saved = exportBatchRepository.save(batch);
-        return mapToDTO(saved);
-    }
-
-    @Override
-    public void deleteExportBatch(Long id) {
-        if (!exportBatchRepository.existsById(id)) {
-            throw new ResourceNotFoundException("Export batch not found with id: " + id);
+        if (!exportBatchRepository.existsById(batchId)) {
+            throw new ResourceNotFoundException("Export batch not found with id: " + batchId);
         }
-        exportBatchRepository.deleteById(id);
+
+        exportBatchRepository.deleteById(batchId);
     }
 
-    // ============
+    // ==========================
     // ENTITY → DTO
-    // ============
+    // ==========================
     private ExportBatchDTO mapToDTO(ExportBatch batch) {
+
         ExportBatchDTO dto = new ExportBatchDTO();
         dto.setBatchId(batch.getBatchId());
         dto.setCustomerId(batch.getCustomer().getCustomerId());
-        dto.setWindowStart(batch.getWindowStart());
-        dto.setWindowEnd(batch.getWindowEnd());
+        dto.setStartDate(batch.getStartDate());
+        dto.setEndDate(batch.getEndDate());
         dto.setStatus(batch.getStatus());
-        dto.setAttemptCount(batch.getAttemptCount());
-        dto.setLastAttemptTime(batch.getLastAttemptTime());
+        dto.setFilePath(batch.getFilePath());
         dto.setErrorMessage(batch.getErrorMessage());
-        dto.setExportFileKey(batch.getExportFileKey());
-        dto.setRowCount(batch.getRowCount());
         dto.setCreatedTime(batch.getCreatedTime());
         dto.setModifiedTime(batch.getModifiedTime());
-        return dto;
-    }
 
-    // ============
-    // DTO → ENTITY
-    // ============
-    private ExportBatch mapToEntity(ExportBatchDTO dto) {
-        ExportBatch batch = new ExportBatch();
-        batch.setWindowStart(dto.getWindowStart());
-        batch.setWindowEnd(dto.getWindowEnd());
-        batch.setStatus(dto.getStatus());
-        batch.setAttemptCount(dto.getAttemptCount());
-        batch.setLastAttemptTime(dto.getLastAttemptTime());
-        batch.setErrorMessage(dto.getErrorMessage());
-        batch.setExportFileKey(dto.getExportFileKey());
-        batch.setRowCount(dto.getRowCount());
-        return batch;
+        return dto;
     }
 }

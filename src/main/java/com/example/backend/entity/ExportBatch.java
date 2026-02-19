@@ -4,15 +4,7 @@ import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(
-        name = "export_batches",
-        uniqueConstraints = {
-                @UniqueConstraint(
-                        name = "uk_customer_window",
-                        columnNames = {"customer_id", "window_start", "window_end"}
-                )
-        }
-)
+@Table(name = "export_batches")
 public class ExportBatch {
 
     @Id
@@ -20,33 +12,24 @@ public class ExportBatch {
     @Column(name = "batch_id")
     private Long batchId;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "customer_id", nullable = false)
     private Customer customer;
 
-    @Column(name = "window_start", nullable = false)
-    private LocalDateTime windowStart;
+    @Column(name = "start_date", nullable = false)
+    private LocalDateTime startDate;
 
-    @Column(name = "window_end", nullable = false)
-    private LocalDateTime windowEnd;
+    @Column(name = "end_date", nullable = false)
+    private LocalDateTime endDate;
 
     @Column(name = "status", nullable = false, length = 20)
-    private String status; // PENDING, IN_PROGRESS, SUCCESS, FAILED
+    private String status; // PENDING, PROCESSING, COMPLETED, FAILED
 
-    @Column(name = "attempt_count", nullable = false)
-    private Integer attemptCount = 0;
-
-    @Column(name = "last_attempt_time")
-    private LocalDateTime lastAttemptTime;
+    @Column(name = "file_path", length = 300)
+    private String filePath; // S3 key: exports/{customerId}/{batchId}/analytics.csv
 
     @Column(name = "error_message", length = 500)
     private String errorMessage;
-
-    @Column(name = "export_file_key", length = 300)
-    private String exportFileKey; // e.g. exports/{customerId}/{batchId}/transactions_last3m.csv
-
-    @Column(name = "row_count")
-    private Integer rowCount;
 
     @Column(name = "created_time", nullable = false, updatable = false)
     private LocalDateTime createdTime;
@@ -63,9 +46,6 @@ public class ExportBatch {
         if (this.status == null || this.status.isBlank()) {
             this.status = "PENDING";
         }
-        if (this.attemptCount == null) {
-            this.attemptCount = 0;
-        }
     }
 
     @PreUpdate
@@ -73,7 +53,7 @@ public class ExportBatch {
         this.modifiedTime = LocalDateTime.now();
     }
 
-    // Getters / Setters
+    // Getters and Setters
 
     public Long getBatchId() {
         return batchId;
@@ -91,20 +71,20 @@ public class ExportBatch {
         this.customer = customer;
     }
 
-    public LocalDateTime getWindowStart() {
-        return windowStart;
+    public LocalDateTime getStartDate() {
+        return startDate;
     }
 
-    public void setWindowStart(LocalDateTime windowStart) {
-        this.windowStart = windowStart;
+    public void setStartDate(LocalDateTime startDate) {
+        this.startDate = startDate;
     }
 
-    public LocalDateTime getWindowEnd() {
-        return windowEnd;
+    public LocalDateTime getEndDate() {
+        return endDate;
     }
 
-    public void setWindowEnd(LocalDateTime windowEnd) {
-        this.windowEnd = windowEnd;
+    public void setEndDate(LocalDateTime endDate) {
+        this.endDate = endDate;
     }
 
     public String getStatus() {
@@ -115,20 +95,12 @@ public class ExportBatch {
         this.status = status;
     }
 
-    public Integer getAttemptCount() {
-        return attemptCount;
+    public String getFilePath() {
+        return filePath;
     }
 
-    public void setAttemptCount(Integer attemptCount) {
-        this.attemptCount = attemptCount;
-    }
-
-    public LocalDateTime getLastAttemptTime() {
-        return lastAttemptTime;
-    }
-
-    public void setLastAttemptTime(LocalDateTime lastAttemptTime) {
-        this.lastAttemptTime = lastAttemptTime;
+    public void setFilePath(String filePath) {
+        this.filePath = filePath;
     }
 
     public String getErrorMessage() {
@@ -137,22 +109,6 @@ public class ExportBatch {
 
     public void setErrorMessage(String errorMessage) {
         this.errorMessage = errorMessage;
-    }
-
-    public String getExportFileKey() {
-        return exportFileKey;
-    }
-
-    public void setExportFileKey(String exportFileKey) {
-        this.exportFileKey = exportFileKey;
-    }
-
-    public Integer getRowCount() {
-        return rowCount;
-    }
-
-    public void setRowCount(Integer rowCount) {
-        this.rowCount = rowCount;
     }
 
     public LocalDateTime getCreatedTime() {

@@ -1,6 +1,8 @@
 package com.example.backend.controller;
 
+import com.example.backend.dto.CreateExportBatchDTO;
 import com.example.backend.dto.ExportBatchDTO;
+import com.example.backend.dto.UpdateExportBatchStatusDTO;
 import com.example.backend.service.ExportBatchService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,73 +19,77 @@ public class ExportBatchController {
     @Autowired
     private ExportBatchService exportBatchService;
 
-    // CREATE custom batch (window provided)
+    // ==========================
+    // POST - Create batch (custom window)
+    // ==========================
     @PostMapping
-    public ResponseEntity<ExportBatchDTO> createExportBatch(@Valid @RequestBody ExportBatchDTO dto) {
+    public ResponseEntity<ExportBatchDTO> createExportBatch(
+            @Valid @RequestBody CreateExportBatchDTO dto) {
+
         ExportBatchDTO created = exportBatchService.createExportBatch(dto);
         return new ResponseEntity<>(created, HttpStatus.CREATED);
     }
 
-    // CREATE last-3-months batch (window auto)
+    // ==========================
+    // POST - Create last 3 months batch
+    // ==========================
     @PostMapping("/customer/{customerId}/last3months")
-    public ResponseEntity<ExportBatchDTO> createLast3MonthsBatch(@PathVariable Long customerId) {
+    public ResponseEntity<ExportBatchDTO> createLast3MonthsBatch(
+            @PathVariable Long customerId) {
+
         ExportBatchDTO created = exportBatchService.createLast3MonthsBatch(customerId);
         return new ResponseEntity<>(created, HttpStatus.CREATED);
     }
 
-    // GET ALL
+    // ==========================
+    // GET - All batches
+    // ==========================
     @GetMapping
-    public ResponseEntity<List<ExportBatchDTO>> getAllExportBatches() {
-        return ResponseEntity.ok(exportBatchService.getAllExportBatches());
+    public ResponseEntity<List<ExportBatchDTO>> getAllBatches() {
+        return ResponseEntity.ok(exportBatchService.getAllBatches());
     }
 
-    // GET BY ID
-    @GetMapping("/{id}")
-    public ResponseEntity<ExportBatchDTO> getExportBatchById(@PathVariable Long id) {
-        return ResponseEntity.ok(exportBatchService.getExportBatchById(id));
+    // ==========================
+    // GET - By batch id
+    // ==========================
+    @GetMapping("/{batchId}")
+    public ResponseEntity<ExportBatchDTO> getBatchById(@PathVariable Long batchId) {
+        return ResponseEntity.ok(exportBatchService.getBatchById(batchId));
     }
 
-    // GET BY CUSTOMER
+    // ==========================
+    // GET - Batches by customer
+    // ==========================
     @GetMapping("/customer/{customerId}")
     public ResponseEntity<List<ExportBatchDTO>> getBatchesByCustomer(@PathVariable Long customerId) {
-        return ResponseEntity.ok(exportBatchService.getExportBatchesByCustomerId(customerId));
+        return ResponseEntity.ok(exportBatchService.getBatchesByCustomerId(customerId));
     }
 
-    // JOB: GET PENDING
+    // ==========================
+    // GET - Pending batches (Lambda calls)
+    // ==========================
     @GetMapping("/pending")
     public ResponseEntity<List<ExportBatchDTO>> getPendingBatches() {
         return ResponseEntity.ok(exportBatchService.getPendingBatches());
     }
 
-    // JOB: MARK IN_PROGRESS
-    @PutMapping("/{id}/in-progress")
-    public ResponseEntity<ExportBatchDTO> markInProgress(@PathVariable Long id) {
-        return ResponseEntity.ok(exportBatchService.markInProgress(id));
+    // ==========================
+    // PUT - Update batch status (Lambda calls)
+    // ==========================
+    @PutMapping("/{batchId}/status")
+    public ResponseEntity<ExportBatchDTO> updateBatchStatus(
+            @PathVariable Long batchId,
+            @Valid @RequestBody UpdateExportBatchStatusDTO dto) {
+
+        return ResponseEntity.ok(exportBatchService.updateBatchStatus(batchId, dto));
     }
 
-    // JOB: MARK SUCCESS
-    @PutMapping("/{id}/success")
-    public ResponseEntity<ExportBatchDTO> markSuccess(
-            @PathVariable Long id,
-            @RequestParam String exportFileKey,
-            @RequestParam Integer rowCount) {
-
-        return ResponseEntity.ok(exportBatchService.markSuccess(id, exportFileKey, rowCount));
-    }
-
-    // JOB: MARK FAILED
-    @PutMapping("/{id}/failed")
-    public ResponseEntity<ExportBatchDTO> markFailed(
-            @PathVariable Long id,
-            @RequestParam String errorMessage) {
-
-        return ResponseEntity.ok(exportBatchService.markFailed(id, errorMessage));
-    }
-
-    // DELETE
-    @DeleteMapping("/{id}")
-    public ResponseEntity<String> deleteExportBatch(@PathVariable Long id) {
-        exportBatchService.deleteExportBatch(id);
+    // ==========================
+    // DELETE - Delete batch
+    // ==========================
+    @DeleteMapping("/{batchId}")
+    public ResponseEntity<String> deleteBatch(@PathVariable Long batchId) {
+        exportBatchService.deleteBatch(batchId);
         return ResponseEntity.ok("Export batch deleted successfully");
     }
 }

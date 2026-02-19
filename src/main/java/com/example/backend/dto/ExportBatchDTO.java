@@ -1,34 +1,23 @@
 package com.example.backend.dto;
 
-import jakarta.validation.constraints.NotNull;
 import java.time.LocalDateTime;
 
 public class ExportBatchDTO {
 
     private Long batchId;
-
-    @NotNull(message = "Customer ID is required")
     private Long customerId;
 
-    @NotNull(message = "Window start is required")
-    private LocalDateTime windowStart;
-
-    @NotNull(message = "Window end is required")
-    private LocalDateTime windowEnd;
+    private LocalDateTime startDate;
+    private LocalDateTime endDate;
 
     private String status;
-
-    private Integer attemptCount;
-    private LocalDateTime lastAttemptTime;
-
+    private String filePath;
     private String errorMessage;
-    private String exportFileKey;
-    private Integer rowCount;
 
     private LocalDateTime createdTime;
     private LocalDateTime modifiedTime;
 
-    // Getters / Setters
+    // Getters and Setters
 
     public Long getBatchId() {
         return batchId;
@@ -46,20 +35,20 @@ public class ExportBatchDTO {
         this.customerId = customerId;
     }
 
-    public LocalDateTime getWindowStart() {
-        return windowStart;
+    public LocalDateTime getStartDate() {
+        return startDate;
     }
 
-    public void setWindowStart(LocalDateTime windowStart) {
-        this.windowStart = windowStart;
+    public void setStartDate(LocalDateTime startDate) {
+        this.startDate = startDate;
     }
 
-    public LocalDateTime getWindowEnd() {
-        return windowEnd;
+    public LocalDateTime getEndDate() {
+        return endDate;
     }
 
-    public void setWindowEnd(LocalDateTime windowEnd) {
-        this.windowEnd = windowEnd;
+    public void setEndDate(LocalDateTime endDate) {
+        this.endDate = endDate;
     }
 
     public String getStatus() {
@@ -70,20 +59,12 @@ public class ExportBatchDTO {
         this.status = status;
     }
 
-    public Integer getAttemptCount() {
-        return attemptCount;
+    public String getFilePath() {
+        return filePath;
     }
 
-    public void setAttemptCount(Integer attemptCount) {
-        this.attemptCount = attemptCount;
-    }
-
-    public LocalDateTime getLastAttemptTime() {
-        return lastAttemptTime;
-    }
-
-    public void setLastAttemptTime(LocalDateTime lastAttemptTime) {
-        this.lastAttemptTime = lastAttemptTime;
+    public void setFilePath(String filePath) {
+        this.filePath = filePath;
     }
 
     public String getErrorMessage() {
@@ -92,22 +73,6 @@ public class ExportBatchDTO {
 
     public void setErrorMessage(String errorMessage) {
         this.errorMessage = errorMessage;
-    }
-
-    public String getExportFileKey() {
-        return exportFileKey;
-    }
-
-    public void setExportFileKey(String exportFileKey) {
-        this.exportFileKey = exportFileKey;
-    }
-
-    public Integer getRowCount() {
-        return rowCount;
-    }
-
-    public void setRowCount(Integer rowCount) {
-        this.rowCount = rowCount;
     }
 
     public LocalDateTime getCreatedTime() {

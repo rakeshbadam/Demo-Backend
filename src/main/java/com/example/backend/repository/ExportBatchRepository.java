@@ -9,7 +9,7 @@ import java.util.List;
 @Repository
 public interface ExportBatchRepository extends JpaRepository<ExportBatch, Long> {
 
-    List<ExportBatch> findByCustomerCustomerId(Long customerId);
+    List<ExportBatch> findByStatus(String status);
 
-    List<ExportBatch> findByStatusOrderByCreatedTimeAsc(String status);
+    List<ExportBatch> findByCustomerCustomerId(Long customerId);
 }
