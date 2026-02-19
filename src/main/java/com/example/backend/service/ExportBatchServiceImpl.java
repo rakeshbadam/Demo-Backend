@@ -3,37 +3,57 @@ package com.example.backend.service;
 import com.example.backend.dto.CreateExportBatchDTO;
 import com.example.backend.dto.ExportBatchDTO;
 import com.example.backend.dto.UpdateExportBatchStatusDTO;
+import com.example.backend.entity.Account;
 import com.example.backend.entity.Customer;
 import com.example.backend.entity.ExportBatch;
+import com.example.backend.entity.Transaction;
 import com.example.backend.exception.ResourceNotFoundException;
+import com.example.backend.repository.AccountRepository;
 import com.example.backend.repository.CustomerRepository;
 import com.example.backend.repository.ExportBatchRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.example.backend.repository.TransactionRepository;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
 public class ExportBatchServiceImpl implements ExportBatchService {
 
-    @Autowired
-    private ExportBatchRepository exportBatchRepository;
+    private final ExportBatchRepository exportBatchRepository;
+    private final CustomerRepository customerRepository;
+    private final AccountRepository accountRepository;
+    private final TransactionRepository transactionRepository;
+    private final LambdaInvocationService lambdaInvocationService;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
-    @Autowired
-    private CustomerRepository customerRepository;
+    public ExportBatchServiceImpl(
+            ExportBatchRepository exportBatchRepository,
+            CustomerRepository customerRepository,
+            AccountRepository accountRepository,
+            TransactionRepository transactionRepository,
+            LambdaInvocationService lambdaInvocationService) {
 
-    // ==========================
-    // CREATE (custom window)
-    // ==========================
+        this.exportBatchRepository = exportBatchRepository;
+        this.customerRepository = customerRepository;
+        this.accountRepository = accountRepository;
+        this.transactionRepository = transactionRepository;
+        this.lambdaInvocationService = lambdaInvocationService;
+    }
+
+    // =====================================================
+    // CREATE EXPORT BATCH (Manual)
+    // =====================================================
     @Override
     public ExportBatchDTO createExportBatch(CreateExportBatchDTO dto) {
 
         Customer customer = customerRepository.findById(dto.getCustomerId())
                 .orElseThrow(() ->
-                        new ResourceNotFoundException("Customer not found with id: " + dto.getCustomerId())
-                );
+                        new ResourceNotFoundException("Customer not found with id: " + dto.getCustomerId()));
 
         ExportBatch batch = new ExportBatch();
         batch.setCustomer(customer);
@@ -41,20 +61,18 @@ public class ExportBatchServiceImpl implements ExportBatchService {
         batch.setEndDate(dto.getEndDate());
         batch.setStatus("PENDING");
 
-        ExportBatch saved = exportBatchRepository.save(batch);
-        return mapToDTO(saved);
+        return mapToDTO(exportBatchRepository.save(batch));
     }
 
-    // ==========================
-    // CREATE (last 3 months)
-    // ==========================
+    // =====================================================
+    // CREATE LAST 3 MONTHS BATCH + LAMBDA CALL
+    // =====================================================
     @Override
     public ExportBatchDTO createLast3MonthsBatch(Long customerId) {
 
         Customer customer = customerRepository.findById(customerId)
                 .orElseThrow(() ->
-                        new ResourceNotFoundException("Customer not found with id: " + customerId)
-                );
+                        new ResourceNotFoundException("Customer not found with id: " + customerId));
 
         LocalDateTime end = LocalDateTime.now();
         LocalDateTime start = end.minusMonths(3);
@@ -63,15 +81,152 @@ public class ExportBatchServiceImpl implements ExportBatchService {
         batch.setCustomer(customer);
         batch.setStartDate(start);
         batch.setEndDate(end);
-        batch.setStatus("PENDING");
+        batch.setStatus("PROCESSING");
 
-        ExportBatch saved = exportBatchRepository.save(batch);
-        return mapToDTO(saved);
+        ExportBatch savedBatch = exportBatchRepository.save(batch);
+
+        try {
+
+            Map<String, Object> analytics =
+                    calculateCustomerAnalytics(customer);
+
+            Map<String, Object> payload = new HashMap<>(analytics);
+            payload.put("customerId", customerId);
+            payload.put("batchId", savedBatch.getBatchId());
+            payload.put("startDate", start.toString());
+            payload.put("endDate", end.toString());
+
+            String jsonPayload = objectMapper.writeValueAsString(payload);
+
+            String lambdaResponse = lambdaInvocationService.invoke(
+                    "banking-analytics-export",
+                    jsonPayload
+            );
+
+            Map<String, Object> responseMap =
+                    objectMapper.readValue(lambdaResponse, Map.class);
+
+            String body = (String) responseMap.get("body");
+            Map<String, Object> bodyMap =
+                    objectMapper.readValue(body, Map.class);
+
+            String fileKey = (String) bodyMap.get("fileKey");
+
+            if (fileKey == null) {
+                throw new RuntimeException("fileKey not found in Lambda response");
+            }
+
+            savedBatch.setStatus("COMPLETED");
+            savedBatch.setFilePath(fileKey);
+            savedBatch.setErrorMessage(null);
+
+        } catch (Exception e) {
+
+            savedBatch.setStatus("FAILED");
+            savedBatch.setErrorMessage(e.getMessage());
+        }
+
+        return mapToDTO(exportBatchRepository.save(savedBatch));
     }
 
-    // ==========================
-    // GET ALL
-    // ==========================
+    // =====================================================
+    // 🔥 ANALYTICS FOR ALL CUSTOMERS
+    // =====================================================
+    @Override
+    public List<Map<String, Object>> getAllCustomerAnalytics() {
+
+        List<Customer> customers = customerRepository.findAll();
+
+        return customers.stream()
+                .map(this::calculateCustomerAnalytics)
+                .collect(Collectors.toList());
+    }
+
+    // =====================================================
+    // 🔥 CORE ANALYTICS LOGIC
+    // =====================================================
+    private Map<String, Object> calculateCustomerAnalytics(Customer customer) {
+
+        List<Account> accounts =
+                accountRepository.findByCustomerCustomerId(customer.getCustomerId());
+
+        BigDecimal totalCreditLimit = BigDecimal.ZERO;
+        BigDecimal totalCreditBalance = BigDecimal.ZERO;
+
+        for (Account account : accounts) {
+
+            if ("CREDIT_CARD".equalsIgnoreCase(account.getAccountType())) {
+
+                if (account.getCreditLimit() != null)
+                    totalCreditLimit = totalCreditLimit.add(account.getCreditLimit());
+
+                if (account.getCurrentBalance() != null)
+                    totalCreditBalance = totalCreditBalance.add(account.getCurrentBalance());
+            }
+        }
+
+        // ==============================
+        // DTI USING LOAN TRANSACTIONS
+        // ==============================
+
+        BigDecimal totalMonthlyLoanPayments = BigDecimal.ZERO;
+        LocalDateTime oneMonthAgo = LocalDateTime.now().minusMonths(1);
+
+        for (Account account : accounts) {
+
+            List<Transaction> loanTransactions =
+                    transactionRepository
+                            .findByAccountAccountIdAndTransactionTypeAndTransactionDateAfter(
+                                    account.getAccountId(),
+                                    "LOAN",
+                                    oneMonthAgo
+                            );
+
+            for (Transaction txn : loanTransactions) {
+                if (txn.getAmount() != null) {
+                    totalMonthlyLoanPayments =
+                            totalMonthlyLoanPayments.add(txn.getAmount());
+                }
+            }
+        }
+
+        BigDecimal annualIncome =
+                customer.getIncome() != null ? customer.getIncome() : BigDecimal.ZERO;
+
+        BigDecimal monthlyIncome =
+                annualIncome.divide(BigDecimal.valueOf(12), 2, RoundingMode.HALF_UP);
+
+        BigDecimal creditUtilization = BigDecimal.ZERO;
+        if (totalCreditLimit.compareTo(BigDecimal.ZERO) > 0) {
+            creditUtilization = totalCreditBalance
+                    .divide(totalCreditLimit, 4, RoundingMode.HALF_UP)
+                    .multiply(BigDecimal.valueOf(100))
+                    .setScale(2, RoundingMode.HALF_UP);
+        }
+
+        BigDecimal dti = BigDecimal.ZERO;
+        if (monthlyIncome.compareTo(BigDecimal.ZERO) > 0) {
+            dti = totalMonthlyLoanPayments
+                    .divide(monthlyIncome, 4, RoundingMode.HALF_UP)
+                    .multiply(BigDecimal.valueOf(100))
+                    .setScale(2, RoundingMode.HALF_UP);
+        }
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("customerId", customer.getCustomerId());
+        result.put("annualIncome", annualIncome);
+        result.put("monthlyIncome", monthlyIncome);
+        result.put("creditUtilization", creditUtilization);
+        result.put("dti", dti);
+        result.put("accounts", accounts.size());
+        result.put("generatedAt", LocalDateTime.now().toString());
+
+        return result;
+    }
+
+    // =====================================================
+    // GET METHODS
+    // =====================================================
     @Override
     public List<ExportBatchDTO> getAllBatches() {
         return exportBatchRepository.findAll()
@@ -80,84 +235,54 @@ public class ExportBatchServiceImpl implements ExportBatchService {
                 .collect(Collectors.toList());
     }
 
-    // ==========================
-    // GET BY ID
-    // ==========================
     @Override
     public ExportBatchDTO getBatchById(Long batchId) {
-
         ExportBatch batch = exportBatchRepository.findById(batchId)
                 .orElseThrow(() ->
-                        new ResourceNotFoundException("Export batch not found with id: " + batchId)
-                );
-
+                        new ResourceNotFoundException("Batch not found with id: " + batchId));
         return mapToDTO(batch);
     }
 
-    // ==========================
-    // GET BY CUSTOMER ID
-    // ==========================
     @Override
     public List<ExportBatchDTO> getBatchesByCustomerId(Long customerId) {
-
-        customerRepository.findById(customerId)
-                .orElseThrow(() ->
-                        new ResourceNotFoundException("Customer not found with id: " + customerId)
-                );
-
         return exportBatchRepository.findByCustomerCustomerId(customerId)
                 .stream()
                 .map(this::mapToDTO)
                 .collect(Collectors.toList());
     }
 
-    // ==========================
-    // GET PENDING (Lambda uses)
-    // ==========================
     @Override
     public List<ExportBatchDTO> getPendingBatches() {
-
         return exportBatchRepository.findByStatus("PENDING")
                 .stream()
                 .map(this::mapToDTO)
                 .collect(Collectors.toList());
     }
 
-    // ==========================
-    // UPDATE STATUS (Lambda uses)
-    // ==========================
     @Override
     public ExportBatchDTO updateBatchStatus(Long batchId, UpdateExportBatchStatusDTO dto) {
 
         ExportBatch batch = exportBatchRepository.findById(batchId)
                 .orElseThrow(() ->
-                        new ResourceNotFoundException("Export batch not found with id: " + batchId)
-                );
+                        new ResourceNotFoundException("Batch not found with id: " + batchId));
 
         batch.setStatus(dto.getStatus());
-        batch.setFilePath(dto.getFilePath());
         batch.setErrorMessage(dto.getErrorMessage());
+        batch.setFilePath(dto.getFilePath());
 
-        ExportBatch updated = exportBatchRepository.save(batch);
-        return mapToDTO(updated);
+        return mapToDTO(exportBatchRepository.save(batch));
     }
 
-    // ==========================
-    // DELETE
-    // ==========================
     @Override
     public void deleteBatch(Long batchId) {
 
-        if (!exportBatchRepository.existsById(batchId)) {
-            throw new ResourceNotFoundException("Export batch not found with id: " + batchId);
-        }
+        ExportBatch batch = exportBatchRepository.findById(batchId)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("Batch not found with id: " + batchId));
 
-        exportBatchRepository.deleteById(batchId);
+        exportBatchRepository.delete(batch);
     }
 
-    // ==========================
-    // ENTITY → DTO
-    // ==========================
     private ExportBatchDTO mapToDTO(ExportBatch batch) {
 
         ExportBatchDTO dto = new ExportBatchDTO();

@@ -16,18 +16,27 @@ public class ExportBatch {
     @JoinColumn(name = "customer_id", nullable = false)
     private Customer customer;
 
-    @Column(name = "start_date", nullable = false)
+    // 🔹 Window start (last 3 months start)
+    @Column(name = "window_start", nullable = false)
     private LocalDateTime startDate;
 
-    @Column(name = "end_date", nullable = false)
+    // 🔹 Window end (usually now)
+    @Column(name = "window_end", nullable = false)
     private LocalDateTime endDate;
 
+    // 🔹 PENDING | PROCESSING | COMPLETED | FAILED
     @Column(name = "status", nullable = false, length = 20)
-    private String status; // PENDING, PROCESSING, COMPLETED, FAILED
+    private String status;
 
+    // 🔹 Retry counter for Lambda
+    @Column(name = "attempt_count", nullable = false)
+    private Integer attemptCount;
+
+    // 🔹 S3 file location
     @Column(name = "file_path", length = 300)
-    private String filePath; // S3 key: exports/{customerId}/{batchId}/analytics.csv
+    private String filePath;
 
+    // 🔹 Error details if FAILED
     @Column(name = "error_message", length = 500)
     private String errorMessage;
 
@@ -37,6 +46,9 @@ public class ExportBatch {
     @Column(name = "modified_time", nullable = false)
     private LocalDateTime modifiedTime;
 
+    // ==========================
+    // Lifecycle Hooks
+    // ==========================
     @PrePersist
     protected void onCreate() {
         LocalDateTime now = LocalDateTime.now();
@@ -46,6 +58,10 @@ public class ExportBatch {
         if (this.status == null || this.status.isBlank()) {
             this.status = "PENDING";
         }
+
+        if (this.attemptCount == null) {
+            this.attemptCount = 0;
+        }
     }
 
     @PreUpdate
@@ -53,7 +69,9 @@ public class ExportBatch {
         this.modifiedTime = LocalDateTime.now();
     }
 
-    // Getters and Setters
+    // ==========================
+    // Getters & Setters
+    // ==========================
 
     public Long getBatchId() {
         return batchId;
@@ -93,6 +111,14 @@ public class ExportBatch {
 
     public void setStatus(String status) {
         this.status = status;
+    }
+
+    public Integer getAttemptCount() {
+        return attemptCount;
+    }
+
+    public void setAttemptCount(Integer attemptCount) {
+        this.attemptCount = attemptCount;
     }
 
     public String getFilePath() {

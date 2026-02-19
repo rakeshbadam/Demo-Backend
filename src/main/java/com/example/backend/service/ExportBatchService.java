@@ -5,6 +5,7 @@ import com.example.backend.dto.ExportBatchDTO;
 import com.example.backend.dto.UpdateExportBatchStatusDTO;
 
 import java.util.List;
+import java.util.Map; 
 
 public interface ExportBatchService {
 
@@ -23,6 +24,5 @@ public interface ExportBatchService {
     ExportBatchDTO updateBatchStatus(Long batchId, UpdateExportBatchStatusDTO dto);
 
     void deleteBatch(Long batchId);
-    
     List<Map<String, Object>> getAllCustomerAnalytics();
 }
