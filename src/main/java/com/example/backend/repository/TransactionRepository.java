@@ -20,7 +20,6 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
             LocalDateTime endDate
     );
 
-    // 🔥 REQUIRED for DTI (Loan transactions after given date)
     List<Transaction> findByAccountAccountIdAndTransactionTypeAndTransactionDateAfter(
             Long accountId,
             String transactionType,

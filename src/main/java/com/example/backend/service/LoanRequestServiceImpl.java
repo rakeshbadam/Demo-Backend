@@ -46,7 +46,10 @@ public class LoanRequestServiceImpl implements LoanRequestService {
 public List<LoanRequest> getPendingRequests() {
     return loanRequestRepository.findByStatus(LoanRequestStatus.PENDING);
 }
-
+@Override
+public List<LoanRequest> getRequestsByStatus(LoanRequestStatus status) {
+    return loanRequestRepository.findByStatus(status);
+}
 @Override
 public LoanRequest updateStatus(Long id, UpdateLoanRequestStatusDTO dto) {
 
@@ -58,5 +61,13 @@ public LoanRequest updateStatus(Long id, UpdateLoanRequestStatusDTO dto) {
     request.setProcessedAt(java.time.LocalDateTime.now());
 
     return loanRequestRepository.save(request);
+}
+@Override
+public void deleteLoanRequest(Long id) {
+
+    LoanRequest request = loanRequestRepository.findById(id)
+            .orElseThrow(() -> new RuntimeException("Loan request not found"));
+
+    loanRequestRepository.delete(request);
 }
 }

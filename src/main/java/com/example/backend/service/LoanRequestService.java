@@ -2,6 +2,7 @@ package com.example.backend.service;
 
 import com.example.backend.entity.LoanRequest;
 import com.example.backend.dto.UpdateLoanRequestStatusDTO;
+import com.example.backend.enums.LoanRequestStatus;
 import java.util.List;
 
 public interface LoanRequestService {
@@ -12,6 +13,7 @@ public interface LoanRequestService {
 
     LoanRequest updateStatus(Long id, UpdateLoanRequestStatusDTO dto);
 
+    List<LoanRequest> getRequestsByStatus(LoanRequestStatus status);
 
-
+    void deleteLoanRequest(Long id);   // 🔥 MUST EXIST
 }

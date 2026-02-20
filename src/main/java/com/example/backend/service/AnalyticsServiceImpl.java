@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -48,13 +49,11 @@ public class AnalyticsServiceImpl implements AnalyticsService {
 
             if ("CREDIT_CARD".equalsIgnoreCase(account.getAccountType())) {
 
-                if (account.getCreditLimit() != null) {
+                if (account.getCreditLimit() != null)
                     totalLimit = totalLimit.add(account.getCreditLimit());
-                }
 
-                if (account.getCurrentBalance() != null) {
+                if (account.getCurrentBalance() != null)
                     totalBalance = totalBalance.add(account.getCurrentBalance());
-                }
             }
         }
 
@@ -75,7 +74,7 @@ public class AnalyticsServiceImpl implements AnalyticsService {
     }
 
     // =========================================
-    // DTI (Loan transactions based)
+    // DTI with Risk Category
     // =========================================
     @Override
     public AnalyticsDTO calculateDTI(Long customerId) {
@@ -103,11 +102,11 @@ public class AnalyticsServiceImpl implements AnalyticsService {
             }
         }
 
-        BigDecimal averageMonthlyEMI = totalLoanPayments
-                .divide(BigDecimal.valueOf(3), 4, RoundingMode.HALF_UP);
+        BigDecimal averageMonthlyEMI =
+                totalLoanPayments.divide(BigDecimal.valueOf(3), 4, RoundingMode.HALF_UP);
 
-        BigDecimal monthlyIncome = customer.getIncome()
-                .divide(BigDecimal.valueOf(12), 4, RoundingMode.HALF_UP);
+        BigDecimal monthlyIncome =
+                customer.getIncome().divide(BigDecimal.valueOf(12), 4, RoundingMode.HALF_UP);
 
         BigDecimal dti = BigDecimal.ZERO;
 
@@ -117,11 +116,63 @@ public class AnalyticsServiceImpl implements AnalyticsService {
                     .multiply(BigDecimal.valueOf(100));
         }
 
+        dti = dti.setScale(2, RoundingMode.HALF_UP);
+
         AnalyticsDTO dto = new AnalyticsDTO();
         dto.setCustomerId(customerId);
-        dto.setValue(dti.setScale(2, RoundingMode.HALF_UP));
+        dto.setValue(dti);
         dto.setMetricType("DTI");
+        dto.setRiskCategory(determineRiskCategory(dti));
 
         return dto;
+    }
+
+    // =========================================
+    // RISK CATEGORY LOGIC
+    // =========================================
+    private String determineRiskCategory(BigDecimal dti) {
+
+        if (dti.compareTo(BigDecimal.valueOf(20)) <= 0)
+            return "LOW";
+
+        if (dti.compareTo(BigDecimal.valueOf(35)) <= 0)
+            return "MEDIUM";
+
+        if (dti.compareTo(BigDecimal.valueOf(50)) <= 0)
+            return "HIGH";
+
+        return "VERY_HIGH";
+    }
+
+    // =========================================
+    // ALL CUSTOMERS DTI
+    // =========================================
+    @Override
+    public List<AnalyticsDTO> calculateAllCustomersDTI() {
+
+        List<Customer> customers = customerRepository.findAll();
+        List<AnalyticsDTO> results = new ArrayList<>();
+
+        for (Customer customer : customers) {
+            results.add(calculateDTI(customer.getCustomerId()));
+        }
+
+        return results;
+    }
+
+    // =========================================
+    // ALL CUSTOMERS CREDIT UTILIZATION
+    // =========================================
+    @Override
+    public List<AnalyticsDTO> calculateAllCustomersCreditUtilization() {
+
+        List<Customer> customers = customerRepository.findAll();
+        List<AnalyticsDTO> results = new ArrayList<>();
+
+        for (Customer customer : customers) {
+            results.add(calculateCreditUtilization(customer.getCustomerId()));
+        }
+
+        return results;
     }
 }

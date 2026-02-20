@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
+import com.example.backend.enums.LoanRequestStatus;
 
 @RestController
 @RequestMapping("/api/loan-request")
@@ -20,24 +21,35 @@ public class LoanRequestController {
     private LoanRequestService loanRequestService;
 
     @PostMapping("/{customerId}")
-    public LoanRequest createLoanRequest(
-            @PathVariable Long customerId) {
-
+    public LoanRequest createLoanRequest(@PathVariable Long customerId) {
         return loanRequestService.createLoanRequest(customerId);
     }
 
     @PutMapping("/{id}/status")
-public LoanRequest updateStatus(
-        @PathVariable Long id,
-        @RequestBody UpdateLoanRequestStatusDTO dto) {
+    public LoanRequest updateStatus(
+            @PathVariable Long id,
+            @RequestBody UpdateLoanRequestStatusDTO dto) {
 
-    return loanRequestService.updateStatus(id, dto);
-}
+        return loanRequestService.updateStatus(id, dto);
+    }
 
-@GetMapping("/pending")
-public List<LoanRequest> getPendingRequests() {
-    return loanRequestService.getPendingRequests();
-}
+    @GetMapping("/pending")
+    public List<LoanRequest> getPendingRequests() {
+        return loanRequestService.getPendingRequests();
+    }
 
+    // 🔥 NEW FLEXIBLE ENDPOINT
+    @GetMapping("/status/{status}")
+    public List<LoanRequest> getRequestsByStatus(
+            @PathVariable LoanRequestStatus status) {
 
+        return loanRequestService.getRequestsByStatus(status);
+    }
+    @DeleteMapping("/{id}")
+     public String deleteLoanRequest(@PathVariable Long id) {
+
+    loanRequestService.deleteLoanRequest(id);
+
+    return "Loan request deleted successfully with id: " + id;
+    }
 }
