@@ -15,5 +15,5 @@ public interface LoanRequestService {
 
     List<LoanRequest> getRequestsByStatus(LoanRequestStatus status);
 
-    void deleteLoanRequest(Long id);   // 🔥 MUST EXIST
+    void deleteLoanRequest(Long id);   
 }

@@ -23,9 +23,9 @@ public class AccountServiceImpl implements AccountService {
     @Autowired
     private CustomerRepository customerRepository;
 
-    // ==========================
+   
     // CREATE
-    // ==========================
+   
     @Override
     public AccountDTO createAccount(AccountDTO accountDTO) {
 
@@ -42,9 +42,9 @@ public class AccountServiceImpl implements AccountService {
         return mapToDTO(savedAccount);
     }
 
-    // ==========================
+   
     // GET ALL
-    // ==========================
+  
     @Override
     public List<AccountDTO> getAllAccounts() {
 
@@ -54,9 +54,9 @@ public class AccountServiceImpl implements AccountService {
                 .collect(Collectors.toList());
     }
 
-    // ==========================
+    
     // GET BY ID
-    // ==========================
+   
     @Override
     public AccountDTO getAccountById(Long id) {
 
@@ -68,9 +68,9 @@ public class AccountServiceImpl implements AccountService {
         return mapToDTO(account);
     }
 
-    // ==========================
+  
     // GET BY CUSTOMER ID
-    // ==========================
+  
     @Override
     public List<AccountDTO> getAccountsByCustomerId(Long customerId) {
 
@@ -86,9 +86,9 @@ public class AccountServiceImpl implements AccountService {
                 .collect(Collectors.toList());
     }
 
-    // ==========================
+   
     // CUSTOMER ACCOUNT OVERVIEW
-    // ==========================
+   
     @Override
     public CustomerAccountOverviewDTO getCustomerAccountsOverview(Long customerId) {
 
@@ -116,9 +116,9 @@ public class AccountServiceImpl implements AccountService {
         return response;
     }
 
-    // ==========================
+    
     // UPDATE
-    // ==========================
+    
     @Override
     public AccountDTO updateAccount(Long id, AccountDTO accountDTO) {
 
@@ -136,9 +136,9 @@ public class AccountServiceImpl implements AccountService {
         return mapToDTO(updatedAccount);
     }
 
-    // ==========================
+   
     // DELETE
-    // ==========================
+   
     @Override
     public void deleteAccount(Long id) {
 
@@ -149,9 +149,9 @@ public class AccountServiceImpl implements AccountService {
         accountRepository.deleteById(id);
     }
 
-    // ==========================
+    
     // ENTITY → DTO
-    // ==========================
+   
     private AccountDTO mapToDTO(Account account) {
 
         AccountDTO dto = new AccountDTO();
@@ -166,9 +166,9 @@ public class AccountServiceImpl implements AccountService {
         return dto;
     }
 
-    // ==========================
+   
     // DTO → ENTITY
-    // ==========================
+   
     private Account mapToEntity(AccountDTO dto) {
 
         Account account = new Account();

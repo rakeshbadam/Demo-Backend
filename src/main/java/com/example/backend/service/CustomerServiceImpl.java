@@ -16,7 +16,7 @@ public class CustomerServiceImpl implements CustomerService {
     @Autowired
     private CustomerRepository customerRepository;
 
-    // 🔹 CREATE
+    // CREATE
     @Override
     public CustomerDTO createCustomer(CustomerDTO customerDTO) {
 
@@ -26,7 +26,7 @@ public class CustomerServiceImpl implements CustomerService {
         return mapToDTO(savedCustomer);
     }
 
-    // 🔹 GET ALL
+    //  GET ALL
     @Override
     public List<CustomerDTO> getAllCustomers() {
         return customerRepository.findAll()
@@ -35,7 +35,7 @@ public class CustomerServiceImpl implements CustomerService {
                 .collect(Collectors.toList());
     }
 
-    // 🔹 GET BY ID
+    //  GET BY ID
     @Override
     public CustomerDTO getCustomerById(Long id) {
 
@@ -47,7 +47,7 @@ public class CustomerServiceImpl implements CustomerService {
         return mapToDTO(customer);
     }
 
-    // 🔹 UPDATE
+    // UPDATE
     @Override
     public CustomerDTO updateCustomer(Long id, CustomerDTO customerDTO) {
 
@@ -65,7 +65,7 @@ public class CustomerServiceImpl implements CustomerService {
         return mapToDTO(updatedCustomer);
     }
 
-    // 🔹 DELETE
+    // DELETE
     @Override
     public void deleteCustomer(Long id) {
 
@@ -76,9 +76,9 @@ public class CustomerServiceImpl implements CustomerService {
         customerRepository.deleteById(id);
     }
 
-    // ==========================
-    // 🔹 ENTITY → DTO
-    // ==========================
+    
+    //  ENTITY → DTO
+   
     private CustomerDTO mapToDTO(Customer customer) {
         CustomerDTO dto = new CustomerDTO();
         dto.setCustomerId(customer.getCustomerId());
@@ -90,9 +90,9 @@ public class CustomerServiceImpl implements CustomerService {
         return dto;
     }
 
-    // ==========================
-    // 🔹 DTO → ENTITY
-    // ==========================
+  
+    //  DTO → ENTITY
+   
     private Customer mapToEntity(CustomerDTO dto) {
         Customer customer = new Customer();
         customer.setCustomerName(dto.getCustomerName());

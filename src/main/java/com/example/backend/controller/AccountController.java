@@ -18,9 +18,9 @@ public class AccountController {
     @Autowired
     private AccountService accountService;
 
-    // ==========================
+   
     // CREATE ACCOUNT
-    // ==========================
+
     @PostMapping
     public ResponseEntity<AccountDTO> createAccount(
             @Valid @RequestBody AccountDTO accountDTO) {
@@ -29,9 +29,9 @@ public class AccountController {
         return new ResponseEntity<>(createdAccount, HttpStatus.CREATED);
     }
 
-    // ==========================
+   
     // GET ALL ACCOUNTS
-    // ==========================
+  
     @GetMapping
     public ResponseEntity<List<AccountDTO>> getAllAccounts() {
         return ResponseEntity.ok(accountService.getAllAccounts());
@@ -45,9 +45,9 @@ public class AccountController {
         return ResponseEntity.ok(accountService.getAccountById(id));
     }
 
-    // ==========================
+  
     // GET ACCOUNTS BY CUSTOMER ID
-    // ==========================
+  
     @GetMapping("/customer/{customerId}")
     public ResponseEntity<List<AccountDTO>> getAccountsByCustomer(
             @PathVariable Long customerId) {
@@ -57,9 +57,9 @@ public class AccountController {
         );
     }
 
-    // ==========================
+   
     // CUSTOMER ACCOUNT OVERVIEW
-    // ==========================
+   
     @GetMapping("/customer/{customerId}/overview")
     public ResponseEntity<CustomerAccountOverviewDTO> getCustomerAccountsOverview(
             @PathVariable Long customerId) {
@@ -69,9 +69,9 @@ public class AccountController {
         );
     }
 
-    // ==========================
+
     // UPDATE ACCOUNT
-    // ==========================
+   
     @PutMapping("/{id}")
     public ResponseEntity<AccountDTO> updateAccount(
             @PathVariable Long id,
@@ -82,9 +82,9 @@ public class AccountController {
         );
     }
 
-    // ==========================
+    
     // DELETE ACCOUNT
-    // ==========================
+
     @DeleteMapping("/{id}")
     public ResponseEntity<String> deleteAccount(@PathVariable Long id) {
 

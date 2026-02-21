@@ -29,10 +29,9 @@ public class AnalyticsServiceImpl implements AnalyticsService {
     @Autowired
     private TransactionRepository transactionRepository;
 
-    // =========================================
+   
     // CREDIT UTILIZATION
-    // =========================================
-    @Override
+    
     public AnalyticsDTO calculateCreditUtilization(Long customerId) {
 
         customerRepository.findById(customerId)
@@ -73,9 +72,9 @@ public class AnalyticsServiceImpl implements AnalyticsService {
         return dto;
     }
 
-    // =========================================
+   
     // DTI with Risk Category
-    // =========================================
+   
     @Override
     public AnalyticsDTO calculateDTI(Long customerId) {
 
@@ -127,9 +126,9 @@ public class AnalyticsServiceImpl implements AnalyticsService {
         return dto;
     }
 
-    // =========================================
+ 
     // RISK CATEGORY LOGIC
-    // =========================================
+    
     private String determineRiskCategory(BigDecimal dti) {
 
         if (dti.compareTo(BigDecimal.valueOf(20)) <= 0)
@@ -144,9 +143,9 @@ public class AnalyticsServiceImpl implements AnalyticsService {
         return "VERY_HIGH";
     }
 
-    // =========================================
+   
     // ALL CUSTOMERS DTI
-    // =========================================
+   
     @Override
     public List<AnalyticsDTO> calculateAllCustomersDTI() {
 
@@ -160,9 +159,9 @@ public class AnalyticsServiceImpl implements AnalyticsService {
         return results;
     }
 
-    // =========================================
+    
     // ALL CUSTOMERS CREDIT UTILIZATION
-    // =========================================
+    
     @Override
     public List<AnalyticsDTO> calculateAllCustomersCreditUtilization() {
 

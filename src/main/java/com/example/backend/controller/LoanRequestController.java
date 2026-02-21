@@ -38,7 +38,7 @@ public class LoanRequestController {
         return loanRequestService.getPendingRequests();
     }
 
-    // 🔥 NEW FLEXIBLE ENDPOINT
+   //FLEXIBLE ENDPOINT
     @GetMapping("/status/{status}")
     public List<LoanRequest> getRequestsByStatus(
             @PathVariable LoanRequestStatus status) {

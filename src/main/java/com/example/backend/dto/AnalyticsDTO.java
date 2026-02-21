@@ -6,8 +6,8 @@ public class AnalyticsDTO {
 
     private Long customerId;
     private BigDecimal value;
-    private String metricType; // CREDIT_UTILIZATION or DTI
-    private String riskCategory; // Only used for DTI
+    private String metricType; 
+    private String riskCategory; 
 
     public Long getCustomerId() {
         return customerId;

@@ -15,7 +15,7 @@ public interface AccountService {
 
     List<AccountDTO> getAccountsByCustomerId(Long customerId);
 
-    // ✅ ADD THIS METHOD
+    
     CustomerAccountOverviewDTO getCustomerAccountsOverview(Long customerId);
 
     AccountDTO updateAccount(Long id, AccountDTO accountDTO);

@@ -23,9 +23,9 @@ public class TransactionServiceImpl implements TransactionService {
     @Autowired
     private AccountRepository accountRepository;
 
-    // ==========================
+    
     // CREATE (auto balance update)
-    // ==========================
+ 
     @Override
     public TransactionDTO createTransaction(TransactionDTO transactionDTO) {
 
@@ -88,9 +88,9 @@ public class TransactionServiceImpl implements TransactionService {
                 .collect(Collectors.toList());
     }
 
-    // ==========================
+    
     // UPDATE (reverse old impact, apply new)
-    // ==========================
+   
     @Override
     public TransactionDTO updateTransaction(Long id, TransactionDTO transactionDTO) {
 
@@ -120,9 +120,9 @@ public class TransactionServiceImpl implements TransactionService {
         return mapToDTO(updatedTransaction);
     }
 
-    // ==========================
-    // DELETE (reverse impact)
-    // ==========================
+   
+    // DELETE 
+    
     @Override
     public void deleteTransaction(Long id) {
 
@@ -140,12 +140,11 @@ public class TransactionServiceImpl implements TransactionService {
         transactionRepository.deleteById(id);
     }
 
-    // ==========================
-    // BALANCE IMPACT HELPERS
-    // ==========================
-   // ==========================
+   
+   
+  
 // BALANCE IMPACT HELPERS
-// ==========================
+
 private void applyImpact(Account account, String type, BigDecimal amount) {
 
     if (amount == null) amount = BigDecimal.ZERO;
@@ -180,9 +179,9 @@ private void reverseImpact(Account account, String type, BigDecimal amount) {
 }
 
 
-    // ==========================
+   
     // ENTITY → DTO
-    // ==========================
+   
     private TransactionDTO mapToDTO(Transaction transaction) {
         TransactionDTO dto = new TransactionDTO();
         dto.setTransactionId(transaction.getTransactionId());
@@ -196,9 +195,9 @@ private void reverseImpact(Account account, String type, BigDecimal amount) {
         return dto;
     }
 
-    // ==========================
+   
     // DTO → ENTITY
-    // ==========================
+   
     private Transaction mapToEntity(TransactionDTO dto) {
         Transaction transaction = new Transaction();
         transaction.setAmount(dto.getAmount());

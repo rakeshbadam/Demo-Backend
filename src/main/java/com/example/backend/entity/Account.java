@@ -34,9 +34,9 @@ public class Account {
     @Column(name = "modified_time", nullable = false)
     private LocalDateTime modifiedTime;
 
-    // ==========================
-    // 🔹 Automatically Set Timestamps
-    // ==========================
+
+    //  Automatically Set Timestamps
+  
     @PrePersist
     protected void onCreate() {
         LocalDateTime now = LocalDateTime.now();
@@ -49,9 +49,8 @@ public class Account {
         this.modifiedTime = LocalDateTime.now();
     }
 
-    // ==========================
-    // 🔹 Getters and Setters
-    // ==========================
+    //  Getters and Setters
+   
 
     public Long getAccountId() {
         return accountId;
