@@ -4,6 +4,7 @@ import com.example.backend.entity.NonExistingLoanApplication;
 import com.example.backend.enums.LoanRequestStatus;
 import com.example.backend.service.NonExistingLoanApplicationService;
 import org.springframework.http.ResponseEntity;
+import com.example.backend.pagination.CursorPage;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -54,5 +55,14 @@ public ResponseEntity<Void> deleteApplication(@PathVariable Long id) {
 
     service.deleteApplication(id);
     return ResponseEntity.noContent().build();
+}
+@GetMapping("/cursor")
+public ResponseEntity<CursorPage<NonExistingLoanApplication>> getCursor(
+        @RequestParam(required = false) Long cursor,
+        @RequestParam(defaultValue = "10") int size) {
+
+    return ResponseEntity.ok(
+            service.getPage(cursor, size)
+    );
 }
 }

@@ -1,6 +1,7 @@
 package com.example.backend.controller;
 
 import com.example.backend.dto.CustomerDTO;
+import com.example.backend.pagination.CursorPage;
 import com.example.backend.service.CustomerService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -55,5 +56,15 @@ public class CustomerController {
 
         customerService.deleteCustomer(id);
         return ResponseEntity.ok("Customer deleted successfully");
+    }
+
+    @GetMapping("/cursor")
+    public ResponseEntity<CursorPage<CustomerDTO>> getCustomersCursor(
+            @RequestParam(required = false) Long cursor,
+            @RequestParam(defaultValue = "10") int size) {
+
+        return ResponseEntity.ok(
+                customerService.getPage(cursor, size)
+        );
     }
 }

@@ -1,25 +1,28 @@
 package com.example.backend.service;
 
+import com.example.backend.dto.UpdateLoanRequestStatusDTO;
 import com.example.backend.entity.LoanRequest;
 import com.example.backend.enums.LoanRequestStatus;
-import com.example.backend.dto.UpdateLoanRequestStatusDTO;
+import com.example.backend.pagination.AbstractCursorService;
+import com.example.backend.pagination.CursorPage;
 import com.example.backend.repository.LoanRequestRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Service
-public class LoanRequestServiceImpl implements LoanRequestService {
+public class LoanRequestServiceImpl
+    extends AbstractCursorService<LoanRequest, LoanRequest>
+    implements LoanRequestService {
 
     @Autowired
     private LoanRequestRepository loanRequestRepository;
 
     @Override
     public LoanRequest createLoanRequest(Long customerId) {
-
-        // 🔹 Check 3-month restriction
         boolean exists = loanRequestRepository
                 .existsByCustomerIdAndCreatedAtAfter(
                         customerId,
@@ -43,31 +46,56 @@ public class LoanRequestServiceImpl implements LoanRequestService {
     }
 
     @Override
-public List<LoanRequest> getPendingRequests() {
-    return loanRequestRepository.findByStatus(LoanRequestStatus.PENDING);
-}
-@Override
-public List<LoanRequest> getRequestsByStatus(LoanRequestStatus status) {
-    return loanRequestRepository.findByStatus(status);
-}
-@Override
-public LoanRequest updateStatus(Long id, UpdateLoanRequestStatusDTO dto) {
+    public List<LoanRequest> getPendingRequests() {
+        return loanRequestRepository.findByStatus(LoanRequestStatus.PENDING);
+    }
 
-    LoanRequest request = loanRequestRepository.findById(id)
-            .orElseThrow(() -> new RuntimeException("Loan request not found"));
+    @Override
+    public List<LoanRequest> getRequestsByStatus(LoanRequestStatus status) {
+        return loanRequestRepository.findByStatus(status);
+    }
 
-    request.setStatus(dto.getStatus());
-    request.setFilePath(dto.getFilePath());
-    request.setProcessedAt(java.time.LocalDateTime.now());
+    @Override
+    public LoanRequest updateStatus(Long id, UpdateLoanRequestStatusDTO dto) {
+        LoanRequest request = loanRequestRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Loan request not found"));
 
-    return loanRequestRepository.save(request);
-}
-@Override
-public void deleteLoanRequest(Long id) {
+        request.setStatus(dto.getStatus());
+        request.setFilePath(dto.getFilePath());
+        request.setProcessedAt(LocalDateTime.now());
 
-    LoanRequest request = loanRequestRepository.findById(id)
-            .orElseThrow(() -> new RuntimeException("Loan request not found"));
+        return loanRequestRepository.save(request);
+    }
 
-    loanRequestRepository.delete(request);
+    @Override
+    public void deleteLoanRequest(Long id) {
+        LoanRequest request = loanRequestRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Loan request not found"));
+
+        loanRequestRepository.delete(request);
+    }
+
+    @Override
+    protected List<LoanRequest> fetchAfterCursor(Long cursor, Pageable pageable) {
+        return loanRequestRepository.findAfterCursor(cursor, pageable);
+    }
+
+    @Override
+    protected Long extractId(LoanRequest entity) {
+        return entity.getId();
+    }
+
+    @Override
+    protected LoanRequest mapToDTO(LoanRequest entity) {
+        return entity;
+    }
+
+    @Override
+    public CursorPage<LoanRequest> getPage(Long cursor, int size) {
+        return super.getPage(cursor, size);
+    }
+    @Override
+public List<LoanRequest> getAllRequests() {
+    return loanRequestRepository.findAll();
 }
 }

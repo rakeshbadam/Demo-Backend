@@ -1,17 +1,15 @@
 package com.example.backend.controller;
 
+import com.example.backend.dto.UpdateLoanRequestStatusDTO;
 import com.example.backend.entity.LoanRequest;
+import com.example.backend.enums.LoanRequestStatus;
+import com.example.backend.pagination.CursorPage;
 import com.example.backend.service.LoanRequestService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import com.example.backend.dto.UpdateLoanRequestStatusDTO;
+
 import java.util.List;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestBody;
-import com.example.backend.enums.LoanRequestStatus;
 
 @RestController
 @RequestMapping("/api/loan-request")
@@ -51,5 +49,19 @@ public class LoanRequestController {
     loanRequestService.deleteLoanRequest(id);
 
     return "Loan request deleted successfully with id: " + id;
+    }
+    @GetMapping("/cursor")
+    public ResponseEntity<CursorPage<LoanRequest>> getCursor(
+            @RequestParam(required = false) Long cursor,
+            @RequestParam(defaultValue = "10") int size) {
+
+        return ResponseEntity.ok(
+                loanRequestService.getPage(cursor, size)
+        );
+    }
+
+    @GetMapping
+    public List<LoanRequest> getAllRequests() {
+        return loanRequestService.getAllRequests();
     }
 }

@@ -4,9 +4,13 @@ import com.example.backend.dto.TransactionDTO;
 import com.example.backend.entity.Account;
 import com.example.backend.entity.Transaction;
 import com.example.backend.exception.ResourceNotFoundException;
+import com.example.backend.pagination.AbstractCursorService;
+import com.example.backend.pagination.CursorPage;
 import com.example.backend.repository.AccountRepository;
 import com.example.backend.repository.TransactionRepository;
+
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -15,7 +19,9 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
-public class TransactionServiceImpl implements TransactionService {
+public class TransactionServiceImpl
+    extends AbstractCursorService<Transaction, TransactionDTO>
+    implements TransactionService {
 
     @Autowired
     private TransactionRepository transactionRepository;
@@ -23,10 +29,29 @@ public class TransactionServiceImpl implements TransactionService {
     @Autowired
     private AccountRepository accountRepository;
 
-    
-    // CREATE (auto balance update)
- 
+    // ===============================
+    // CURSOR METHODS (Required)
+    // ===============================
+
     @Override
+    protected List<Transaction> fetchAfterCursor(Long cursor, Pageable pageable) {
+        return transactionRepository.findAfterCursor(cursor, pageable);
+    }
+
+    @Override
+    protected Long extractId(Transaction entity) {
+        return entity.getTransactionId();
+    }
+
+    @Override
+    protected TransactionDTO mapToDTO(Transaction entity) {
+        return convertToDTO(entity);
+    }
+
+    // ===============================
+    // CREATE (auto balance update)
+    // ===============================
+
     public TransactionDTO createTransaction(TransactionDTO transactionDTO) {
 
         Account account = accountRepository.findById(transactionDTO.getAccountId())
@@ -37,27 +62,29 @@ public class TransactionServiceImpl implements TransactionService {
         Transaction transaction = mapToEntity(transactionDTO);
         transaction.setAccount(account);
 
-        // Apply balance impact
         applyImpact(account, transaction.getTransactionType(), transaction.getAmount());
 
-        // Save both
         accountRepository.save(account);
         Transaction savedTransaction = transactionRepository.save(transaction);
 
-        return mapToDTO(savedTransaction);
+        return convertToDTO(savedTransaction);
     }
 
+    // ===============================
     // GET ALL
-    @Override
+    // ===============================
+
     public List<TransactionDTO> getAllTransactions() {
         return transactionRepository.findAll()
                 .stream()
-                .map(this::mapToDTO)
+                .map(this::convertToDTO)
                 .collect(Collectors.toList());
     }
 
+    // ===============================
     // GET BY ID
-    @Override
+    // ===============================
+
     public TransactionDTO getTransactionById(Long id) {
 
         Transaction transaction = transactionRepository.findById(id)
@@ -65,33 +92,41 @@ public class TransactionServiceImpl implements TransactionService {
                         new ResourceNotFoundException("Transaction not found with id: " + id)
                 );
 
-        return mapToDTO(transaction);
+        return convertToDTO(transaction);
     }
 
+    // ===============================
     // GET BY ACCOUNT ID
-    @Override
+    // ===============================
+
     public List<TransactionDTO> getTransactionsByAccountId(Long accountId) {
 
         return transactionRepository.findByAccountAccountId(accountId)
                 .stream()
-                .map(this::mapToDTO)
+                .map(this::convertToDTO)
                 .collect(Collectors.toList());
     }
 
-    // GET BY ACCOUNT + DATE RANGE (for export batches)
-    @Override
-    public List<TransactionDTO> getTransactionsByAccountIdAndDateRange(Long accountId, LocalDateTime startDate, LocalDateTime endDate) {
+    // ===============================
+    // GET BY ACCOUNT + DATE RANGE
+    // ===============================
 
-        return transactionRepository.findByAccountAccountIdAndTransactionDateBetween(accountId, startDate, endDate)
+    public List<TransactionDTO> getTransactionsByAccountIdAndDateRange(
+            Long accountId,
+            LocalDateTime startDate,
+            LocalDateTime endDate) {
+
+        return transactionRepository
+                .findByAccountAccountIdAndTransactionDateBetween(accountId, startDate, endDate)
                 .stream()
-                .map(this::mapToDTO)
+                .map(this::convertToDTO)
                 .collect(Collectors.toList());
     }
 
-    
-    // UPDATE (reverse old impact, apply new)
-   
-    @Override
+    // ===============================
+    // UPDATE
+    // ===============================
+
     public TransactionDTO updateTransaction(Long id, TransactionDTO transactionDTO) {
 
         Transaction existingTransaction = transactionRepository.findById(id)
@@ -101,29 +136,29 @@ public class TransactionServiceImpl implements TransactionService {
 
         Account account = existingTransaction.getAccount();
 
-        // 1) Reverse old impact
-        reverseImpact(account, existingTransaction.getTransactionType(), existingTransaction.getAmount());
+        reverseImpact(account,
+                existingTransaction.getTransactionType(),
+                existingTransaction.getAmount());
 
-        // 2) Apply new values
         existingTransaction.setAmount(transactionDTO.getAmount());
         existingTransaction.setTransactionType(transactionDTO.getTransactionType());
         existingTransaction.setTransactionDate(transactionDTO.getTransactionDate());
         existingTransaction.setDescription(transactionDTO.getDescription());
 
-        // 3) Apply new impact
-        applyImpact(account, existingTransaction.getTransactionType(), existingTransaction.getAmount());
+        applyImpact(account,
+                existingTransaction.getTransactionType(),
+                existingTransaction.getAmount());
 
-        // Save both
         accountRepository.save(account);
         Transaction updatedTransaction = transactionRepository.save(existingTransaction);
 
-        return mapToDTO(updatedTransaction);
+        return convertToDTO(updatedTransaction);
     }
 
-   
-    // DELETE 
-    
-    @Override
+    // ===============================
+    // DELETE
+    // ===============================
+
     public void deleteTransaction(Long id) {
 
         Transaction existingTransaction = transactionRepository.findById(id)
@@ -133,56 +168,59 @@ public class TransactionServiceImpl implements TransactionService {
 
         Account account = existingTransaction.getAccount();
 
-        // Reverse impact
-        reverseImpact(account, existingTransaction.getTransactionType(), existingTransaction.getAmount());
+        reverseImpact(account,
+                existingTransaction.getTransactionType(),
+                existingTransaction.getAmount());
 
         accountRepository.save(account);
         transactionRepository.deleteById(id);
     }
 
-   
-   
-  
-// BALANCE IMPACT HELPERS
+    // ===============================
+    // BALANCE IMPACT HELPERS
+    // ===============================
 
-private void applyImpact(Account account, String type, BigDecimal amount) {
+    private void applyImpact(Account account, String type, BigDecimal amount) {
 
-    if (amount == null) amount = BigDecimal.ZERO;
+        if (amount == null) amount = BigDecimal.ZERO;
 
-    if ("CREDIT".equalsIgnoreCase(type)) {
-        account.setCurrentBalance(account.getCurrentBalance().add(amount));
-    } 
-    else if ("DEBIT".equalsIgnoreCase(type) || "LOAN".equalsIgnoreCase(type)) {
-        // LOAN behaves same as DEBIT
-        account.setCurrentBalance(account.getCurrentBalance().subtract(amount));
-    } 
-    else {
-        throw new IllegalArgumentException("Invalid transaction type: " + type + 
-                " (must be CREDIT, DEBIT, or LOAN)");
+        if ("CREDIT".equalsIgnoreCase(type)) {
+            account.setCurrentBalance(account.getCurrentBalance().add(amount));
+        }
+        else if ("DEBIT".equalsIgnoreCase(type) || "LOAN".equalsIgnoreCase(type)) {
+            account.setCurrentBalance(account.getCurrentBalance().subtract(amount));
+        }
+        else {
+            throw new IllegalArgumentException(
+                    "Invalid transaction type: " + type +
+                    " (must be CREDIT, DEBIT, or LOAN)"
+            );
+        }
     }
-}
 
-private void reverseImpact(Account account, String type, BigDecimal amount) {
+    private void reverseImpact(Account account, String type, BigDecimal amount) {
 
-    if (amount == null) amount = BigDecimal.ZERO;
+        if (amount == null) amount = BigDecimal.ZERO;
 
-    if ("CREDIT".equalsIgnoreCase(type)) {
-        account.setCurrentBalance(account.getCurrentBalance().subtract(amount));
-    } 
-    else if ("DEBIT".equalsIgnoreCase(type) || "LOAN".equalsIgnoreCase(type)) {
-        account.setCurrentBalance(account.getCurrentBalance().add(amount));
-    } 
-    else {
-        throw new IllegalArgumentException("Invalid transaction type: " + type + 
-                " (must be CREDIT, DEBIT, or LOAN)");
+        if ("CREDIT".equalsIgnoreCase(type)) {
+            account.setCurrentBalance(account.getCurrentBalance().subtract(amount));
+        }
+        else if ("DEBIT".equalsIgnoreCase(type) || "LOAN".equalsIgnoreCase(type)) {
+            account.setCurrentBalance(account.getCurrentBalance().add(amount));
+        }
+        else {
+            throw new IllegalArgumentException(
+                    "Invalid transaction type: " + type +
+                    " (must be CREDIT, DEBIT, or LOAN)"
+            );
+        }
     }
-}
 
-
-   
+    // ===============================
     // ENTITY → DTO
-   
-    private TransactionDTO mapToDTO(Transaction transaction) {
+    // ===============================
+
+    private TransactionDTO convertToDTO(Transaction transaction) {
         TransactionDTO dto = new TransactionDTO();
         dto.setTransactionId(transaction.getTransactionId());
         dto.setAccountId(transaction.getAccount().getAccountId());
@@ -195,9 +233,10 @@ private void reverseImpact(Account account, String type, BigDecimal amount) {
         return dto;
     }
 
-   
+    // ===============================
     // DTO → ENTITY
-   
+    // ===============================
+
     private Transaction mapToEntity(TransactionDTO dto) {
         Transaction transaction = new Transaction();
         transaction.setAmount(dto.getAmount());
@@ -206,4 +245,8 @@ private void reverseImpact(Account account, String type, BigDecimal amount) {
         transaction.setDescription(dto.getDescription());
         return transaction;
     }
+    @Override
+public CursorPage<TransactionDTO> getPage(Long cursor, int size) {
+    return super.getPage(cursor, size);
+}
 }

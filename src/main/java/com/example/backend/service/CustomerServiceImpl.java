@@ -3,15 +3,20 @@ package com.example.backend.service;
 import com.example.backend.dto.CustomerDTO;
 import com.example.backend.entity.Customer;
 import com.example.backend.exception.ResourceNotFoundException;
+import com.example.backend.pagination.AbstractCursorService;
+import com.example.backend.pagination.CursorPage;
 import com.example.backend.repository.CustomerRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
-public class CustomerServiceImpl implements CustomerService {
+public class CustomerServiceImpl
+        extends AbstractCursorService<Customer, CustomerDTO>
+        implements CustomerService {
 
     @Autowired
     private CustomerRepository customerRepository;
@@ -23,7 +28,7 @@ public class CustomerServiceImpl implements CustomerService {
         Customer customer = mapToEntity(customerDTO);
         Customer savedCustomer = customerRepository.save(customer);
 
-        return mapToDTO(savedCustomer);
+        return convertToDTO(savedCustomer);
     }
 
     //  GET ALL
@@ -31,7 +36,7 @@ public class CustomerServiceImpl implements CustomerService {
     public List<CustomerDTO> getAllCustomers() {
         return customerRepository.findAll()
                 .stream()
-                .map(this::mapToDTO)
+                .map(this::convertToDTO)
                 .collect(Collectors.toList());
     }
 
@@ -44,7 +49,7 @@ public class CustomerServiceImpl implements CustomerService {
                         new ResourceNotFoundException("Customer not found with id: " + id)
                 );
 
-        return mapToDTO(customer);
+        return convertToDTO(customer);
     }
 
     // UPDATE
@@ -62,7 +67,7 @@ public class CustomerServiceImpl implements CustomerService {
 
         Customer updatedCustomer = customerRepository.save(existingCustomer);
 
-        return mapToDTO(updatedCustomer);
+        return convertToDTO(updatedCustomer);
     }
 
     // DELETE
@@ -75,11 +80,29 @@ public class CustomerServiceImpl implements CustomerService {
 
         customerRepository.deleteById(id);
     }
+    @Override
+    protected List<Customer> fetchAfterCursor(Long cursor, Pageable pageable) {
+        return customerRepository.findAfterCursor(cursor, pageable);
+    }
 
+    @Override
+    protected Long extractId(Customer entity) {
+        return entity.getCustomerId();
+    }
+
+    @Override
+    protected CustomerDTO mapToDTO(Customer entity) {
+        return convertToDTO(entity);
+    }
+
+    @Override
+    public CursorPage<CustomerDTO> getPage(Long cursor, int size) {
+        return super.getPage(cursor, size);
+    }
     
     //  ENTITY → DTO
    
-    private CustomerDTO mapToDTO(Customer customer) {
+    private CustomerDTO convertToDTO(Customer customer) {
         CustomerDTO dto = new CustomerDTO();
         dto.setCustomerId(customer.getCustomerId());
         dto.setCustomerName(customer.getCustomerName());
