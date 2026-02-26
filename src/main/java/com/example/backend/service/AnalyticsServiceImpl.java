@@ -1,6 +1,8 @@
 package com.example.backend.service;
 
 import com.example.backend.dto.AnalyticsDTO;
+import com.example.backend.dto.DailyTotalsDTO;
+import com.example.backend.dto.WeeklySummaryDTO;
 import com.example.backend.entity.Account;
 import com.example.backend.entity.Customer;
 import com.example.backend.entity.Transaction;
@@ -13,6 +15,7 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -173,5 +176,77 @@ public class AnalyticsServiceImpl implements AnalyticsService {
         }
 
         return results;
+    }
+
+    // DAILY TOTALS
+    @Override
+    public List<DailyTotalsDTO> getDailyTotals(Long customerId) {
+
+        customerRepository.findById(customerId)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("Customer not found with id: " + customerId)
+                );
+
+        List<Object[]> results = transactionRepository.getDailyTotals(customerId);
+
+        return results.stream()
+                .map(r -> {
+
+                    LocalDate date;
+
+                    if (r[0] instanceof java.sql.Date sqlDate) {
+                        date = sqlDate.toLocalDate();
+                    } else if (r[0] instanceof java.sql.Timestamp ts) {
+                        date = ts.toLocalDateTime().toLocalDate();
+                    } else {
+                        date = (LocalDate) r[0];
+                    }
+
+                    BigDecimal credits = r[1] != null ? (BigDecimal) r[1] : BigDecimal.ZERO;
+                    BigDecimal debits  = r[2] != null ? (BigDecimal) r[2] : BigDecimal.ZERO;
+                    BigDecimal emi     = r[3] != null ? (BigDecimal) r[3] : BigDecimal.ZERO;
+
+                    return new DailyTotalsDTO(date, credits, debits, emi);
+                })
+                .toList();
+    }
+
+    // WEEKLY SUMMARY
+    @Override
+    public List<WeeklySummaryDTO> getWeeklySummary(Long customerId) {
+
+        customerRepository.findById(customerId)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("Customer not found with id: " + customerId)
+                );
+
+        LocalDateTime fromDate = LocalDateTime.now().minusMonths(3);
+
+        List<Object[]> results = transactionRepository.getWeeklyTotals(customerId, fromDate);
+
+        return results.stream()
+                .map(r -> {
+
+                    LocalDate weekStart;
+
+                    Object dateObj = r[0];
+
+                    if (dateObj instanceof java.sql.Date sqlDate) {
+                        weekStart = sqlDate.toLocalDate();
+                    } else if (dateObj instanceof java.sql.Timestamp ts) {
+                        weekStart = ts.toLocalDateTime().toLocalDate();
+                    } else if (dateObj instanceof LocalDate ld) {
+                        weekStart = ld;
+                    } else {
+                        throw new RuntimeException("Unexpected date type: " + dateObj.getClass());
+                    }
+
+                    BigDecimal income = r[1] != null ? (BigDecimal) r[1] : BigDecimal.ZERO;
+                    BigDecimal debits = r[2] != null ? (BigDecimal) r[2] : BigDecimal.ZERO;
+                    BigDecimal emi    = r[3] != null ? (BigDecimal) r[3] : BigDecimal.ZERO;
+
+                    return new WeeklySummaryDTO(weekStart, income, debits, emi);
+                })
+                .toList();
     }
 }

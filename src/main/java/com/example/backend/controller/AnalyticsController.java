@@ -1,6 +1,8 @@
 package com.example.backend.controller;
 
 import com.example.backend.dto.AnalyticsDTO;
+import com.example.backend.dto.DailyTotalsDTO;
+import com.example.backend.dto.WeeklySummaryDTO;
 import com.example.backend.service.AnalyticsService;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -51,6 +53,26 @@ public class AnalyticsController {
 
         return ResponseEntity.ok(
                 analyticsService.calculateAllCustomersCreditUtilization()
+        );
+    }
+
+    // DAILY TOTALS
+    @GetMapping("/customer/{customerId}/daily-totals")
+    public ResponseEntity<List<DailyTotalsDTO>> getDailyTotals(     
+            @PathVariable Long customerId) {
+
+        return ResponseEntity.ok(
+                analyticsService.getDailyTotals(customerId)
+        );
+    }
+
+    // WEEKLY SUMMARY
+    @GetMapping("/customer/{customerId}/weekly-summary")
+    public ResponseEntity<List<WeeklySummaryDTO>> getWeeklySummary(     
+            @PathVariable Long customerId) {
+
+        return ResponseEntity.ok(
+                analyticsService.getWeeklySummary(customerId)
         );
     }
 }
