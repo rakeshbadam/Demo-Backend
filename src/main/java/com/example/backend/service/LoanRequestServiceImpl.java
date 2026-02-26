@@ -9,6 +9,9 @@ import com.example.backend.repository.LoanRequestRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import com.example.backend.repository.CustomerRepository;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -21,8 +24,21 @@ public class LoanRequestServiceImpl
     @Autowired
     private LoanRequestRepository loanRequestRepository;
 
+    @Autowired
+    private CustomerRepository customerRepository;
+
     @Override
     public LoanRequest createLoanRequest(Long customerId) {
+
+        // ✅ NEW: Check if customer exists
+        if (!customerRepository.existsById(customerId)) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Customer not found. Please apply as a new  loan customer first."
+            );
+        }
+
+        // Existing 3-month rule
         boolean exists = loanRequestRepository
                 .existsByCustomerIdAndCreatedAtAfter(
                         customerId,
@@ -30,8 +46,9 @@ public class LoanRequestServiceImpl
                 );
 
         if (exists) {
-            throw new RuntimeException(
-                "You already submitted a loan request in last 3 months."
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "You already submitted a loan request in last 3 months."
             );
         }
 
@@ -94,8 +111,9 @@ public class LoanRequestServiceImpl
     public CursorPage<LoanRequest> getPage(Long cursor, int size) {
         return super.getPage(cursor, size);
     }
+
     @Override
-public List<LoanRequest> getAllRequests() {
-    return loanRequestRepository.findAll();
-}
+    public List<LoanRequest> getAllRequests() {
+        return loanRequestRepository.findAll();
+    }
 }

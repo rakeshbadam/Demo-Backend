@@ -20,6 +20,10 @@ public class CustomerDTO {
     @Size(max = 20, message = "Phone number must be less than 20 characters")
     private String phoneNumber;
 
+    // ✅ NEW (nullable)
+    @Size(max = 150, message = "Email must be less than 150 characters")
+    private String email;
+
     @NotNull(message = "Income is required")
     @Positive(message = "Income must be greater than 0")
     private BigDecimal income;
@@ -53,6 +57,15 @@ public class CustomerDTO {
 
     public void setPhoneNumber(String phoneNumber) {
         this.phoneNumber = phoneNumber;
+    }
+
+    // ✅ NEW
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
     }
 
     public BigDecimal getIncome() {

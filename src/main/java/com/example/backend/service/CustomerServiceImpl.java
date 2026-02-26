@@ -21,17 +21,13 @@ public class CustomerServiceImpl
     @Autowired
     private CustomerRepository customerRepository;
 
-    // CREATE
     @Override
     public CustomerDTO createCustomer(CustomerDTO customerDTO) {
-
         Customer customer = mapToEntity(customerDTO);
         Customer savedCustomer = customerRepository.save(customer);
-
         return convertToDTO(savedCustomer);
     }
 
-    //  GET ALL
     @Override
     public List<CustomerDTO> getAllCustomers() {
         return customerRepository.findAll()
@@ -40,22 +36,17 @@ public class CustomerServiceImpl
                 .collect(Collectors.toList());
     }
 
-    //  GET BY ID
     @Override
     public CustomerDTO getCustomerById(Long id) {
-
         Customer customer = customerRepository.findById(id)
                 .orElseThrow(() ->
                         new ResourceNotFoundException("Customer not found with id: " + id)
                 );
-
         return convertToDTO(customer);
     }
 
-    // UPDATE
     @Override
     public CustomerDTO updateCustomer(Long id, CustomerDTO customerDTO) {
-
         Customer existingCustomer = customerRepository.findById(id)
                 .orElseThrow(() ->
                         new ResourceNotFoundException("Customer not found with id: " + id)
@@ -63,23 +54,21 @@ public class CustomerServiceImpl
 
         existingCustomer.setCustomerName(customerDTO.getCustomerName());
         existingCustomer.setPhoneNumber(customerDTO.getPhoneNumber());
+        existingCustomer.setEmail(customerDTO.getEmail()); // ✅ NEW
         existingCustomer.setIncome(customerDTO.getIncome());
 
         Customer updatedCustomer = customerRepository.save(existingCustomer);
-
         return convertToDTO(updatedCustomer);
     }
 
-    // DELETE
     @Override
     public void deleteCustomer(Long id) {
-
         if (!customerRepository.existsById(id)) {
             throw new ResourceNotFoundException("Customer not found with id: " + id);
         }
-
         customerRepository.deleteById(id);
     }
+
     @Override
     protected List<Customer> fetchAfterCursor(Long cursor, Pageable pageable) {
         return customerRepository.findAfterCursor(cursor, pageable);
@@ -99,27 +88,26 @@ public class CustomerServiceImpl
     public CursorPage<CustomerDTO> getPage(Long cursor, int size) {
         return super.getPage(cursor, size);
     }
-    
-    //  ENTITY → DTO
-   
+
+    // ENTITY → DTO
     private CustomerDTO convertToDTO(Customer customer) {
         CustomerDTO dto = new CustomerDTO();
         dto.setCustomerId(customer.getCustomerId());
         dto.setCustomerName(customer.getCustomerName());
         dto.setPhoneNumber(customer.getPhoneNumber());
+        dto.setEmail(customer.getEmail()); // ✅ NEW
         dto.setIncome(customer.getIncome());
         dto.setCreatedTime(customer.getCreatedTime());
         dto.setModifiedTime(customer.getModifiedTime());
         return dto;
     }
 
-  
-    //  DTO → ENTITY
-   
+    // DTO → ENTITY
     private Customer mapToEntity(CustomerDTO dto) {
         Customer customer = new Customer();
         customer.setCustomerName(dto.getCustomerName());
         customer.setPhoneNumber(dto.getPhoneNumber());
+        customer.setEmail(dto.getEmail()); // ✅ NEW
         customer.setIncome(dto.getIncome());
         return customer;
     }

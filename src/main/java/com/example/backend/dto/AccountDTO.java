@@ -24,6 +24,8 @@ public class AccountDTO {
     private BigDecimal creditLimit;
     // Nullable for CHECKING and LOAN accounts
 
+    
+
     @NotNull(message = "Current balance is required")
     @PositiveOrZero(message = "Current balance cannot be negative")
     private BigDecimal currentBalance;

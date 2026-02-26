@@ -21,4 +21,15 @@ public interface LoanRequestRepository extends JpaRepository<LoanRequest, Long> 
        ORDER BY l.id ASC
        """)
     List<LoanRequest> findAfterCursor(@Param("cursor") Long cursor, Pageable pageable);
+
+    List<LoanRequest> findByStatusOrderByIdAsc(
+        LoanRequestStatus status,
+        Pageable pageable
+);
+
+List<LoanRequest> findByStatusAndIdGreaterThanOrderByIdAsc(
+        LoanRequestStatus status,
+        Long cursor,
+        Pageable pageable
+);
 }

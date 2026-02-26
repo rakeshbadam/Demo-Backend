@@ -4,7 +4,6 @@ import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
-
 @Entity
 @Table(name = "customers")
 public class Customer {
@@ -19,6 +18,10 @@ public class Customer {
 
     @Column(name = "phone_number", nullable = false, length = 20)
     private String phoneNumber;
+
+    // ✅ NEW COLUMN (nullable by default)
+    @Column(name = "email", length = 150)
+    private String email;
 
     @Column(name = "income", nullable = false, precision = 15, scale = 2)
     private BigDecimal income;
@@ -42,7 +45,10 @@ public class Customer {
         this.modifiedTime = LocalDateTime.now();
     }
 
+    // =====================
     // Getters and Setters
+    // =====================
+
     public Long getCustomerId() {
         return customerId;
     }
@@ -67,6 +73,15 @@ public class Customer {
         this.phoneNumber = phoneNumber;
     }
 
+    // ✅ NEW
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
+    }
+
     public BigDecimal getIncome() {
         return income;
     }
@@ -82,7 +97,4 @@ public class Customer {
     public LocalDateTime getModifiedTime() {
         return modifiedTime;
     }
-    
-
-
 }
