@@ -1,6 +1,7 @@
 package com.example.backend.entity;
 
 import com.example.backend.enums.LoanRequestStatus;
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 
 import java.time.LocalDateTime;
@@ -13,12 +14,19 @@ public class LoanReview {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // =========================
-    // Foreign Reference
-    // =========================
-
-    @Column(name = "loan_request_id", nullable = false)
+    /*
+     🔥 Keep this for easy access to ID
+     */
+    @Column(name = "loan_request_id", nullable = false, insertable = false, updatable = false)
     private Long loanRequestId;
+
+    /*
+     🔥 FIXED: Prevent infinite JSON recursion
+     */
+    @JsonBackReference
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "loan_request_id", nullable = false)
+    private LoanRequest loanRequest;
 
     // =========================
     // Reviewer Info
@@ -27,27 +35,15 @@ public class LoanReview {
     @Column(nullable = false)
     private String reviewerName;
 
-    // =========================
-    // Decision (ENUM)
-    // =========================
-
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private LoanRequestStatus decision;
-
-    // =========================
-    // Optional Fields
-    // =========================
 
     @Column(columnDefinition = "TEXT")
     private String notes;
 
     @Column(columnDefinition = "TEXT")
     private String escalationReason;
-
-    // =========================
-    // Audit Fields
-    // =========================
 
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -80,12 +76,15 @@ public class LoanReview {
         return loanRequestId;
     }
 
-    public void setLoanRequestId(Long loanRequestId) {
-        this.loanRequestId = loanRequestId;
+    public LoanRequest getLoanRequest() {
+        return loanRequest;
     }
 
-    public void setId(Long id) {
-        this.id = id;
+    public void setLoanRequest(LoanRequest loanRequest) {
+        this.loanRequest = loanRequest;
+        if (loanRequest != null) {
+            this.loanRequestId = loanRequest.getId();
+        }
     }
 
     public String getReviewerName() {

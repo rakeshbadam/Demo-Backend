@@ -42,7 +42,7 @@ public class LoanReviewServiceImpl implements LoanReviewService {
         loanRequest.setStatus(LoanRequestStatus.UNDER_REVIEW);
 
         LoanReview review = new LoanReview();
-        review.setLoanRequestId(loanRequestId);
+        review.setLoanRequest(loanRequest);
         review.setReviewerName(reviewerName);
         review.setDecision(LoanRequestStatus.UNDER_REVIEW); // enum-safe
 
@@ -78,7 +78,7 @@ public class LoanReviewServiceImpl implements LoanReviewService {
         }
 
         LoanReview review = new LoanReview();
-        review.setLoanRequestId(loanRequestId);
+        review.setLoanRequest(loanRequest);
         review.setReviewerName(reviewerName);
         review.setDecision(decision);
         review.setNotes(notes);
@@ -101,42 +101,46 @@ public class LoanReviewServiceImpl implements LoanReviewService {
     // ===============================
     // GET ALL REVIEWS (CURSOR + FILTER)
     // ===============================
-    @Override
-    public CursorPage<LoanReview> getAllReviews(Long cursor,
-                                                int size,
-                                                String decisionStr) {
+   @Override
+public CursorPage<LoanReview> getAllReviews(Long cursor,
+                                            int size,
+                                            String decisionStr) {
 
-        if (size <= 0) {
-            size = 5;
-        }
-
-        PageRequest pageable = PageRequest.of(0, size);
-
-        List<LoanReview> reviews;
-
-        if (decisionStr != null) {
-
-            LoanRequestStatus decision =
-                    LoanRequestStatus.valueOf(decisionStr.toUpperCase());
-
-            reviews = (cursor == null)
-                    ? reviewRepository.findByDecisionOrderByIdAsc(decision, pageable)
-                    : reviewRepository.findByDecisionAndIdGreaterThanOrderByIdAsc(
-                            decision, cursor, pageable);
-
-        } else {
-
-            reviews = (cursor == null)
-                    ? reviewRepository.findAllByOrderByIdAsc(pageable)
-                    : reviewRepository.findByIdGreaterThanOrderByIdAsc(cursor, pageable);
-        }
-
-        boolean hasNext = reviews.size() == size;
-        Long nextCursor = hasNext ? reviews.get(reviews.size() - 1).getId() : null;
-
-        return new CursorPage<>(reviews, nextCursor, hasNext);
+    if (size <= 0) {
+        size = 5;
     }
 
+    PageRequest pageable = PageRequest.of(0, size);
+
+    List<LoanReview> reviews;
+
+    LoanRequestStatus decision = null;
+
+    // ✅ SAFE ENUM HANDLING
+    if (decisionStr != null && !decisionStr.isBlank()) {
+        try {
+            decision = LoanRequestStatus.valueOf(decisionStr.trim().toUpperCase());
+        } catch (IllegalArgumentException ex) {
+            throw new RuntimeException("Invalid decision value: " + decisionStr);
+        }
+    }
+
+    if (decision != null) {
+        reviews = (cursor == null)
+                ? reviewRepository.findByDecisionOrderByIdAsc(decision, pageable)
+                : reviewRepository.findByDecisionAndIdGreaterThanOrderByIdAsc(
+                        decision, cursor, pageable);
+    } else {
+        reviews = (cursor == null)
+                ? reviewRepository.findAllByOrderByIdAsc(pageable)
+                : reviewRepository.findByIdGreaterThanOrderByIdAsc(cursor, pageable);
+    }
+
+    boolean hasNext = reviews.size() == size;
+    Long nextCursor = hasNext ? reviews.get(reviews.size() - 1).getId() : null;
+
+    return new CursorPage<>(reviews, nextCursor, hasNext);
+}
     // ===============================
     // REVIEW QUEUE (UNDER_REVIEW)
     // ===============================
