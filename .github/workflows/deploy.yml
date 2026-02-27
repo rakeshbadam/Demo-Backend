@@ -20,8 +20,11 @@ jobs:
             echo "==> Going to backend folder"
             cd /home/ec2-user/backend
 
-            echo "==> Pulling latest code"
-            git pull origin main
+            echo "==> Fetching latest code"
+            git fetch origin
+
+            echo "==> Resetting to remote main"
+            git reset --hard origin/main
 
             echo "==> Building (tests included)"
             ./mvnw clean package
@@ -33,7 +36,4 @@ jobs:
             mkdir -p logs
             nohup java -jar target/backend-0.0.1-SNAPSHOT.jar > logs/app.log 2>&1 &
 
-            echo "==> Done. Showing last 20 log lines"
-            echo "==> Done. Showing last 20 log lines"
-            sleep 2
-            tail -n 20 logs/app.log || true
+            echo "Deployment complete!"
