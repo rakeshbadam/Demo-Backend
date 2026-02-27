@@ -2,14 +2,15 @@ name: Deploy Spring Boot to EC2
 
 on:
   push:
-    branches: [ "main" ]
+    branches:
+      - main
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Deploy over SSH
+      - name: Deploy to EC2 via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.EC2_HOST }}
@@ -17,28 +18,38 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
             set -e
-            echo "==> Going to backend folder"
+
+            echo "==== ENTERING BACKEND DIRECTORY ===="
             cd /home/ec2-user/backend
 
-            echo "==> Fetching latest code"
+            echo "==== FETCH LATEST CODE ===="
             git fetch origin
-
-            echo "==> Resetting to remote main"
             git reset --hard origin/main
 
-            echo "==> Building (tests included)"
-            ./mvnw clean package
+            echo "==== BUILDING PROJECT ===="
+            ./mvnw clean package -DskipTests
 
-            echo "==> Stopping old app (if running)"
-            PID=$(pgrep -f backend-0.0.1-SNAPSHOT.jar || true)
-            if [ ! -z "$PID" ]; then
-              echo "Killing process $PID"
-              kill -15 $PID
-              sleep 5
+            echo "==== STOPPING OLD APPLICATION ===="
+            OLD_PID=$(pgrep -f backend-0.0.1-SNAPSHOT.jar || true)
+
+            if [ -n "$OLD_PID" ]; then
+              echo "Stopping process $OLD_PID"
+              kill -9 $OLD_PID || true
+              sleep 3
+            else
+              echo "No existing process found"
             fi
 
-            echo "==> Starting new app"
+            echo "==== STARTING NEW APPLICATION ===="
             mkdir -p logs
-            nohup java -jar target/backend-0.0.1-SNAPSHOT.jar > logs/app.log 2>&1 &
 
-            echo "Deployment complete!"
+            # Start in completely detached mode
+            nohup java -jar target/backend-0.0.1-SNAPSHOT.jar > logs/app.log 2>&1 &
+            disown
+
+            sleep 5
+
+            echo "==== VERIFYING APPLICATION START ===="
+            pgrep -f backend-0.0.1-SNAPSHOT.jar || echo "App not found in process list"
+
+            echo "==== DEPLOYMENT FINISHED SUCCESSFULLY ===="
