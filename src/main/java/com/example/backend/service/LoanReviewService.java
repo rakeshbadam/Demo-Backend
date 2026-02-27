@@ -32,7 +32,7 @@ public interface LoanReviewService {
     /**
      * Get all reviews using cursor-based pagination.
      */
-    CursorPage<LoanReview> getAllReviews(Long cursor, int size);
+    CursorPage<LoanReview> getAllReviews(Long cursor, int size, String decision);
 
     /**
      * Get review queue (SUCCESS only) using cursor-based pagination.

@@ -14,20 +14,30 @@ public class LoanReviewController {
         this.reviewService = reviewService;
     }
 
+    // ===============================
+    // START REVIEW
+    // ===============================
     @PostMapping("/{loanRequestId}/start")
-    public ResponseEntity<?> startReview(@PathVariable Long loanRequestId,
-                                         @RequestParam String reviewerName) {
+    public ResponseEntity<?> startReview(
+            @PathVariable Long loanRequestId,
+            @RequestParam String reviewerName) {
+
         return ResponseEntity.ok(
                 reviewService.startReview(loanRequestId, reviewerName)
         );
     }
 
+    // ===============================
+    // SUBMIT DECISION
+    // ===============================
     @PostMapping("/{loanRequestId}/decision")
-    public ResponseEntity<?> submitDecision(@PathVariable Long loanRequestId,
-                                            @RequestParam String reviewerName,
-                                            @RequestParam String decision,
-                                            @RequestParam(required = false) String notes,
-                                            @RequestParam(required = false) String escalationReason) {
+    public ResponseEntity<?> submitDecision(
+            @PathVariable Long loanRequestId,
+            @RequestParam String reviewerName,
+            @RequestParam String decision,
+            @RequestParam(required = false) String notes,
+            @RequestParam(required = false) String escalationReason) {
+
         return ResponseEntity.ok(
                 reviewService.submitDecision(
                         loanRequestId,
@@ -39,6 +49,9 @@ public class LoanReviewController {
         );
     }
 
+    // ===============================
+    // GET REVIEWS BY LOAN REQUEST
+    // ===============================
     @GetMapping("/{loanRequestId}")
     public ResponseEntity<?> getReviews(@PathVariable Long loanRequestId) {
         return ResponseEntity.ok(
@@ -46,22 +59,30 @@ public class LoanReviewController {
         );
     }
 
+    // ===============================
+    // GET ALL REVIEWS (CURSOR + FILTER)
+    // ===============================
     @GetMapping
     public ResponseEntity<?> getAllReviews(
             @RequestParam(required = false) Long cursor,
-            @RequestParam(defaultValue = "10") int size) {
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String decision) {
+
         return ResponseEntity.ok(
-                reviewService.getAllReviews(cursor, size)
+                reviewService.getAllReviews(cursor, size, decision)
         );
     }
 
-   @GetMapping("/queue")
-public ResponseEntity<?> getReviewQueue(
-        @RequestParam(required = false) Long cursor,
-        @RequestParam(defaultValue = "5") int size) {
+    // ===============================
+    // REVIEW QUEUE (UNDER_REVIEW)
+    // ===============================
+    @GetMapping("/queue")
+    public ResponseEntity<?> getReviewQueue(
+            @RequestParam(required = false) Long cursor,
+            @RequestParam(defaultValue = "5") int size) {
 
-    return ResponseEntity.ok(
-            reviewService.getReviewQueue(cursor, size)
-    );
-}
+        return ResponseEntity.ok(
+                reviewService.getReviewQueue(cursor, size)
+        );
+    }
 }

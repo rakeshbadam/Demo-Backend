@@ -52,7 +52,7 @@ public class Transaction {
     }
 
     
-    //  Getters and Setters
+    //  Getters and Setter
    
 
     public Long getTransactionId() {

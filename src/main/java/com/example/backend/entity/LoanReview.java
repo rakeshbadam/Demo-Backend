@@ -1,6 +1,8 @@
 package com.example.backend.entity;
 
+import com.example.backend.enums.LoanRequestStatus;
 import jakarta.persistence.*;
+
 import java.time.LocalDateTime;
 
 @Entity
@@ -11,14 +13,31 @@ public class LoanReview {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    // =========================
+    // Foreign Reference
+    // =========================
+
     @Column(name = "loan_request_id", nullable = false)
     private Long loanRequestId;
+
+    // =========================
+    // Reviewer Info
+    // =========================
 
     @Column(nullable = false)
     private String reviewerName;
 
+    // =========================
+    // Decision (ENUM)
+    // =========================
+
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private String decision;
+    private LoanRequestStatus decision;
+
+    // =========================
+    // Optional Fields
+    // =========================
 
     @Column(columnDefinition = "TEXT")
     private String notes;
@@ -26,8 +45,18 @@ public class LoanReview {
     @Column(columnDefinition = "TEXT")
     private String escalationReason;
 
+    // =========================
+    // Audit Fields
+    // =========================
+
+    @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
+
     private LocalDateTime updatedAt;
+
+    // =========================
+    // Lifecycle Hooks
+    // =========================
 
     @PrePersist
     public void onCreate() {
@@ -39,15 +68,12 @@ public class LoanReview {
         updatedAt = LocalDateTime.now();
     }
 
-   
+    // =========================
+    // Getters & Setters
+    // =========================
 
-    // getters & setters
     public Long getId() {
         return id;
-    }       
-
-    public void setId(Long id) {
-        this.id = id;
     }
 
     public Long getLoanRequestId() {
@@ -58,6 +84,10 @@ public class LoanReview {
         this.loanRequestId = loanRequestId;
     }
 
+    public void setId(Long id) {
+        this.id = id;
+    }
+
     public String getReviewerName() {
         return reviewerName;
     }
@@ -66,11 +96,11 @@ public class LoanReview {
         this.reviewerName = reviewerName;
     }
 
-    public String getDecision() {
+    public LoanRequestStatus getDecision() {
         return decision;
     }
 
-    public void setDecision(String decision) {
+    public void setDecision(LoanRequestStatus decision) {
         this.decision = decision;
     }
 
@@ -94,19 +124,11 @@ public class LoanReview {
         return createdAt;
     }
 
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
-    }
-
     public LocalDateTime getUpdatedAt() {
         return updatedAt;
     }
 
-
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
     }
-
-    
-
 }

@@ -12,7 +12,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @Transactional
@@ -45,7 +44,7 @@ public class LoanReviewServiceImpl implements LoanReviewService {
         LoanReview review = new LoanReview();
         review.setLoanRequestId(loanRequestId);
         review.setReviewerName(reviewerName);
-        review.setDecision("STARTED");
+        review.setDecision(LoanRequestStatus.UNDER_REVIEW); // enum-safe
 
         return reviewRepository.save(review);
     }
@@ -56,12 +55,27 @@ public class LoanReviewServiceImpl implements LoanReviewService {
     @Override
     public LoanReview submitDecision(Long loanRequestId,
                                      String reviewerName,
-                                     String decision,
+                                     String decisionStr,
                                      String notes,
                                      String escalationReason) {
 
         LoanRequest loanRequest = loanRequestRepository.findById(loanRequestId)
                 .orElseThrow(() -> new RuntimeException("LoanRequest not found"));
+
+        LoanRequestStatus decision;
+
+        try {
+            decision = LoanRequestStatus.valueOf(decisionStr.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new RuntimeException("Invalid decision value");
+        }
+
+        if (!(decision == LoanRequestStatus.APPROVED
+                || decision == LoanRequestStatus.REJECTED
+                || decision == LoanRequestStatus.ESCALATED
+                || decision == LoanRequestStatus.ADDITIONAL_DOC_REQUIRED)) {
+            throw new RuntimeException("Decision not allowed");
+        }
 
         LoanReview review = new LoanReview();
         review.setLoanRequestId(loanRequestId);
@@ -70,12 +84,8 @@ public class LoanReviewServiceImpl implements LoanReviewService {
         review.setNotes(notes);
         review.setEscalationReason(escalationReason);
 
-        switch (decision) {
-            case "APPROVED" -> loanRequest.setStatus(LoanRequestStatus.APPROVED);
-            case "REJECTED" -> loanRequest.setStatus(LoanRequestStatus.REJECTED);
-            case "ESCALATED" -> loanRequest.setStatus(LoanRequestStatus.ESCALATED);
-            default -> throw new RuntimeException("Invalid decision");
-        }
+        // Update loan lifecycle status
+        loanRequest.setStatus(decision);
 
         return reviewRepository.save(review);
     }
@@ -89,10 +99,12 @@ public class LoanReviewServiceImpl implements LoanReviewService {
     }
 
     // ===============================
-    // GET ALL REVIEWS (CURSOR)
+    // GET ALL REVIEWS (CURSOR + FILTER)
     // ===============================
     @Override
-    public CursorPage<LoanReview> getAllReviews(Long cursor, int size) {
+    public CursorPage<LoanReview> getAllReviews(Long cursor,
+                                                int size,
+                                                String decisionStr) {
 
         if (size <= 0) {
             size = 5;
@@ -100,10 +112,24 @@ public class LoanReviewServiceImpl implements LoanReviewService {
 
         PageRequest pageable = PageRequest.of(0, size);
 
-        List<LoanReview> reviews =
-                (cursor == null)
-                        ? reviewRepository.findAllByOrderByIdAsc(pageable)
-                        : reviewRepository.findByIdGreaterThanOrderByIdAsc(cursor, pageable);
+        List<LoanReview> reviews;
+
+        if (decisionStr != null) {
+
+            LoanRequestStatus decision =
+                    LoanRequestStatus.valueOf(decisionStr.toUpperCase());
+
+            reviews = (cursor == null)
+                    ? reviewRepository.findByDecisionOrderByIdAsc(decision, pageable)
+                    : reviewRepository.findByDecisionAndIdGreaterThanOrderByIdAsc(
+                            decision, cursor, pageable);
+
+        } else {
+
+            reviews = (cursor == null)
+                    ? reviewRepository.findAllByOrderByIdAsc(pageable)
+                    : reviewRepository.findByIdGreaterThanOrderByIdAsc(cursor, pageable);
+        }
 
         boolean hasNext = reviews.size() == size;
         Long nextCursor = hasNext ? reviews.get(reviews.size() - 1).getId() : null;
@@ -112,27 +138,27 @@ public class LoanReviewServiceImpl implements LoanReviewService {
     }
 
     // ===============================
-    // REVIEW QUEUE (ONLY SUCCESS)
+    // REVIEW QUEUE (UNDER_REVIEW)
     // ===============================
     @Override
-public CursorPage<LoanRequest> getReviewQueue(Long cursor, int size) {
+    public CursorPage<LoanRequest> getReviewQueue(Long cursor, int size) {
 
-    if (size <= 0) {
-        size = 5; // default size
+        if (size <= 0) {
+            size = 5;
+        }
+
+        PageRequest pageable = PageRequest.of(0, size);
+
+        List<LoanRequest> requests =
+                (cursor == null)
+                        ? loanRequestRepository.findByStatusOrderByIdAsc(
+                                LoanRequestStatus.UNDER_REVIEW, pageable)
+                        : loanRequestRepository.findByStatusAndIdGreaterThanOrderByIdAsc(
+                                LoanRequestStatus.UNDER_REVIEW, cursor, pageable);
+
+        boolean hasNext = requests.size() == size;
+        Long nextCursor = hasNext ? requests.get(requests.size() - 1).getId() : null;
+
+        return new CursorPage<>(requests, nextCursor, hasNext);
     }
-
-    PageRequest pageable = PageRequest.of(0, size);
-
-    List<LoanRequest> requests =
-            (cursor == null)
-                    ? loanRequestRepository.findByStatusOrderByIdAsc(
-                            LoanRequestStatus.UNDER_REVIEW, pageable)
-                    : loanRequestRepository.findByStatusAndIdGreaterThanOrderByIdAsc(
-                            LoanRequestStatus.UNDER_REVIEW, cursor, pageable);
-
-    boolean hasNext = requests.size() == size;
-    Long nextCursor = hasNext ? requests.get(requests.size() - 1).getId() : null;
-
-    return new CursorPage<>(requests, nextCursor, hasNext);
-}
 }
