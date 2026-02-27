@@ -38,7 +38,6 @@ public class Transaction {
     private LocalDateTime modifiedTime;
 
    
-    // Automatically Set Timestamps
     
     @PrePersist
     protected void onCreate() {
