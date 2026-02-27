@@ -1,0 +1,38 @@
+name: Deploy Spring Boot to EC2
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy over SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            set -e
+            echo "==> Going to backend folder"
+            cd /home/ec2-user/backend
+
+            echo "==> Pulling latest code"
+            git pull origin main
+
+            echo "==> Building (tests included)"
+            ./mvnw clean package
+
+            echo "==> Stopping old app (if running)"
+            pkill -f "backend-0.0.1-SNAPSHOT.jar" || true
+
+            echo "==> Starting new app"
+            mkdir -p logs
+            nohup java -jar target/backend-0.0.1-SNAPSHOT.jar > logs/app.log 2>&1 &
+
+            echo "==> Done. Showing last 20 log lines"
+            sleep 2
+            tail -n 20 logs/app.log || true
